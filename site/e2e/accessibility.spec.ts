@@ -39,12 +39,14 @@ test.describe('accessibility scan (axe-core)', () => {
     expect(await scan(page)).toEqual([]);
   });
 
-  test('the About dialog', async ({ page }) => {
-    await openExplorer(page);
-    await page.getByRole('button', { name: 'About', exact: true }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    expect(await scan(page)).toEqual([]);
-  });
+  for (const name of ['About the data', 'About the author']) {
+    test(`the ${name} dialog`, async ({ page }) => {
+      await openExplorer(page);
+      await page.getByRole('button', { name }).click();
+      await expect(page.getByRole('dialog', { name })).toBeVisible();
+      expect(await scan(page)).toEqual([]);
+    });
+  }
 
   test('the search results list', async ({ page }) => {
     await openExplorer(page);
@@ -70,7 +72,7 @@ test.describe('accessibility scan (axe-core)', () => {
         return el ? (el.getAttribute('aria-label') ?? el.textContent ?? el.tagName).trim().slice(0, 40) : '';
       }));
     }
-    for (const expected of ['Skip to station details', 'About', 'IDF_CC tool', 'Source code', 'Switch colour theme', 'Download CSV', 'Download JSON', 'Copy link', 'Curves']) {
+    for (const expected of ['Skip to station details', 'About the data', 'About the author', 'IDF_CC tool', 'Source code', 'Switch colour theme', 'Download CSV', 'Download JSON', 'Copy link', 'Curves']) {
       expect([...reached].some((label) => label.startsWith(expected)), `Tab never reached "${expected}"`).toBe(true);
     }
   });

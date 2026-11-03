@@ -1,7 +1,7 @@
 import '@fontsource-variable/atkinson-hyperlegible-next';
 import './styles.css';
 import { loadDataset, loadIndex } from './data';
-import { buildAbout } from './about';
+import { buildAboutAuthor, buildAboutData } from './about';
 import { append, byId, clear, h } from './dom';
 import { provinceName } from './format';
 import { createMap, type ColorMode, type LegendInfo } from './map';
@@ -121,8 +121,14 @@ function renderLegend(info: LegendInfo): void {
 
 function setupAbout(dataset: DatasetInfo): void {
   const dialog = byId<HTMLDialogElement>('about');
-  append(clear(byId('about-body')), buildAbout(dataset));
-  byId('about-open').addEventListener('click', () => dialog.showModal());
+  // One dialog, filled for whichever menu item opened it.
+  const open = (title: string, content: HTMLElement[]): void => {
+    byId('about-title').textContent = title;
+    append(clear(byId('about-body')), content);
+    dialog.showModal();
+  };
+  byId('about-data-open').addEventListener('click', () => open('About the data', buildAboutData(dataset)));
+  byId('about-author-open').addEventListener('click', () => open('About the author', buildAboutAuthor()));
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
   });
