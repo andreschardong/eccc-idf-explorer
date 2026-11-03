@@ -23,7 +23,7 @@
 
   <div class="app">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="ECCC Rainfall IDF Explorer, home">
+      <a class="brand" href="./">
         <span class="brand-tile" aria-hidden="true">
           <svg viewBox="0 0 32 32" width="22" height="22">
             <path d="M6 5v20h20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -31,12 +31,13 @@
           </svg>
         </span>
         <span class="brand-text">
-          <span class="brand-title">Rainfall IDF Explorer</span>
+          <h1 class="brand-title">Rainfall IDF Explorer</h1>
           <span class="brand-sub" id="release-line">ECCC release 3.40</span>
         </span>
       </a>
       <nav class="topbar-actions" aria-label="Site">
-        <button type="button" class="btn btn-quiet" id="about-open">About the data</button>
+        <button type="button" class="btn btn-quiet" id="about-open">About</button>
+        <a class="btn btn-quiet" href="https://www.idf-cc-uwo.ca" rel="noopener">IDF_CC tool</a>
         <a class="btn btn-quiet" href="https://github.com/andreschardong/eccc-idf-explorer" rel="noopener">Source code</a>
         <button type="button" class="btn btn-icon" id="theme-toggle" aria-label="Switch colour theme" title="Switch colour theme">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -85,7 +86,7 @@
     <form method="dialog" class="dialog-close"><button class="btn btn-icon" aria-label="Close">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button></form>
-    <h2 id="about-title">About the data</h2>
+    <h2 id="about-title">About</h2>
     <div class="prose" id="about-body"></div>
   </dialog>
 

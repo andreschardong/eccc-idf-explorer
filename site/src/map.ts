@@ -49,6 +49,11 @@ const LAYER = 'stations';
 const HOVER = 'stations-hover';
 const SELECTED = 'stations-selected';
 const HALO = 'stations-selected-halo';
+const CLUSTERS = 'station-clusters';
+const CLUSTER_COUNT = 'station-cluster-count';
+/** Stations group into numbered circles up to this zoom; flying to a station (zoom 6.5) shows them singly. */
+const CLUSTER_MAX_ZOOM = 5;
+const UNCLUSTERED: maplibregl.ExpressionSpecification = ['!', ['has', 'point_count']];
 
 const MODES: Record<ColorMode, { title: string; unit: string; property: 'years' | 'd1h' | 'd24h' }> = {
   years: { title: 'Years of record', unit: 'yr', property: 'years' },
@@ -119,6 +124,12 @@ export function createMap(
   });
   const features = toFeatures(stations);
 
+  /** The stations in view, as the source's data: one province or all. Clusters are rebuilt from this. */
+  function visibleFeatures(): FeatureCollection<Point> {
+    if (!state.province) return features;
+    return { type: 'FeatureCollection', features: features.features.filter((f) => f.properties?.['province'] === state.province) };
+  }
+
   /** The colour expression for the current mode, with class colours read from the CSS tokens. */
   function colourExpression(): { expression: maplibregl.ExpressionSpecification; legend: LegendInfo } {
     const mode = MODES[state.mode];
@@ -145,13 +156,35 @@ export function createMap(
   }
 
   function idFilter(id: string | null): maplibregl.FilterSpecification {
-    return ['==', ['get', 'id'], id ?? ''];
+    return ['all', UNCLUSTERED, ['==', ['get', 'id'], id ?? '']];
   }
 
   function addStationLayers(): void {
     if (map.getSource(SOURCE)) return;
-    map.addSource(SOURCE, { type: 'geojson', data: features });
+    map.addSource(SOURCE, {
+      type: 'geojson', data: visibleFeatures(), cluster: true, clusterRadius: 45, clusterMaxZoom: CLUSTER_MAX_ZOOM,
+    });
     const { expression } = colourExpression();
+    map.addLayer({
+      id: CLUSTERS,
+      type: 'circle',
+      source: SOURCE,
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': cssVar('--cluster'),
+        'circle-radius': ['step', ['get', 'point_count'], 15, 10, 19, 50, 25],
+        'circle-stroke-width': 2.5,
+        'circle-stroke-color': cssVar('--map-ring'),
+      },
+    });
+    map.addLayer({
+      id: CLUSTER_COUNT,
+      type: 'symbol',
+      source: SOURCE,
+      filter: ['has', 'point_count'],
+      layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-allow-overlap': true },
+      paint: { 'text-color': cssVar('--cluster-ink') },
+    });
     map.addLayer({
       id: HALO,
       type: 'circle',
@@ -163,6 +196,7 @@ export function createMap(
       id: LAYER,
       type: 'circle',
       source: SOURCE,
+      filter: UNCLUSTERED,
       paint: {
         'circle-radius': radius(0),
         'circle-color': expression,
@@ -199,7 +233,11 @@ export function createMap(
     map.setPaintProperty(HALO, 'circle-color', cssVar('--accent'));
     map.setPaintProperty(HOVER, 'circle-stroke-color', cssVar('--ink'));
     map.setPaintProperty(SELECTED, 'circle-stroke-color', cssVar('--ink'));
-    map.setFilter(LAYER, state.province ? ['==', ['get', 'province'], state.province] : null);
+    map.setPaintProperty(CLUSTERS, 'circle-color', cssVar('--cluster'));
+    map.setPaintProperty(CLUSTERS, 'circle-stroke-color', cssVar('--map-ring'));
+    map.setPaintProperty(CLUSTER_COUNT, 'text-color', cssVar('--cluster-ink'));
+    map.getSource<maplibregl.GeoJSONSource>(SOURCE)?.setData(visibleFeatures());
+    map.setFilter(LAYER, UNCLUSTERED);
     map.setFilter(HALO, idFilter(state.selected));
     map.setFilter(SELECTED, idFilter(state.selected));
     map.setFilter(HOVER, idFilter(state.hover));
@@ -233,6 +271,30 @@ export function createMap(
     if (map.getLayer(HOVER)) map.setFilter(HOVER, idFilter(null));
     popup.remove();
   });
+  // A group zooms in on itself until its stations separate.
+  map.on('click', CLUSTERS, (event: maplibregl.MapLayerMouseEvent) => {
+    const feature = event.features?.[0];
+    const clusterId = feature?.properties?.['cluster_id'];
+    const source = map.getSource<maplibregl.GeoJSONSource>(SOURCE);
+    if (!feature || typeof clusterId !== 'number' || !source || feature.geometry.type !== 'Point') return;
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
+    void source.getClusterExpansionZoom(clusterId).then((zoom) => {
+      const target = { center: [lng, lat] as [number, number], zoom: zoom + 0.5 };
+      if (reducedMotion()) map.jumpTo(target);
+      else map.easeTo({ ...target, duration: 500 });
+    });
+  });
+  map.on('mouseenter', CLUSTERS, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', CLUSTERS, () => { map.getCanvas().style.cursor = ''; });
+
+  // Read-only status for automated tests: how many groups and single stations are drawn right now.
+  map.on('idle', () => {
+    if (!map.getLayer(LAYER)) return;
+    element.dataset['mapReady'] = 'true';
+    element.dataset['groups'] = String(map.queryRenderedFeatures({ layers: [CLUSTERS] }).length);
+    element.dataset['singles'] = String(map.queryRenderedFeatures({ layers: [LAYER] }).length);
+  });
+
   map.on('click', LAYER, (event: maplibregl.MapLayerMouseEvent) => {
     const id = event.features?.[0]?.properties?.['id'];
     if (typeof id === 'string') onSelect(id);

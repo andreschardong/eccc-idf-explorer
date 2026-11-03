@@ -79,4 +79,6 @@ export interface StationDetail {
   annualMaxDepths: Matrix;
   annualSummary: AnnualSummary;
   fit: PowerLawFit;
+  /** ECCC's file name without extension; the station's PDF and PNG names are built from it. */
+  officialFileStem?: string;
 }

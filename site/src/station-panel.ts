@@ -1,6 +1,8 @@
 // The right-hand card: an empty state with ways in, and the detail view for one station.
 import { renderAnnualChart } from './annual-chart';
 import { buildCalculator } from './calculator-ui';
+import { OFFICIAL_FILES_BASE } from './config';
+import { IDF_CC_URL } from './links';
 import { loadStation, stationJsonUrl } from './data';
 import { clear, h } from './dom';
 import { csvFileName, downloadText, stationToCsv } from './export';
@@ -8,16 +10,18 @@ import {
   durationLabel, formatCoordinates, formatValue, prettyName, provinceName, returnPeriodLabel,
 } from './format';
 import { renderIdfChart, type ChartController, type IdfOptions } from './idf-chart';
+import { buildOfficialPanel } from './official-ui';
 import { buildAnnualTable, buildTablesPanel } from './tables';
 import type { DatasetInfo, StationDetail, StationSummary } from './types';
 
-export type TabId = 'curves' | 'tables' | 'annual' | 'calc';
+export type TabId = 'curves' | 'tables' | 'annual' | 'calc' | 'official';
 
 export const TABS: readonly { id: TabId; label: string }[] = [
   { id: 'curves', label: 'Curves' },
   { id: 'tables', label: 'Tables' },
   { id: 'annual', label: 'Annual' },
   { id: 'calc', label: 'Calculator' },
+  { id: 'official', label: 'Official' },
 ];
 
 export function isTabId(value: string | undefined): value is TabId {
@@ -48,6 +52,8 @@ export function createStationPanel({
 }: StationPanelOptions): StationPanel {
   let disposers: (() => void)[] = [];
   let tab: TabId = 'curves';
+  /** Shows a tab on the station now on screen without telling the page (see selectTab). */
+  let showTabQuietly: ((id: TabId) => void) | null = null;
   let token = 0;
 
   const disposeAll = (): void => {
@@ -159,9 +165,11 @@ export function createStationPanel({
     const skipped = station.durations.filter((_, d) => !station.sampleYears[d]);
     if (skipped.length) notices.push(`ECCC did not analyse ${listDurations(skipped)} at this station.`);
 
+    // The Official tab needs ECCC's file name, which every station in the data has.
+    const tabs = TABS.filter((t) => t.id !== 'official' || station.officialFileStem !== undefined);
     const built = new Set<TabId>();
     const tablist = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Station views' });
-    const tabButtons = TABS.map((t, i) => h('button', {
+    const tabButtons = tabs.map((t, i) => h('button', {
       class: 'tab',
       role: 'tab',
       id: `tab-${t.id}`,
@@ -169,22 +177,22 @@ export function createStationPanel({
       type: 'button',
       onclick: () => select(t.id, true),
       onkeydown: (event: KeyboardEvent) => {
-        const next = ({ ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 } as Record<string, number>)[event.key];
+        const next = ({ ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 } as Record<string, number>)[event.key];
         if (next === undefined) return;
         event.preventDefault();
-        const targetIndex = (next + TABS.length) % TABS.length;
-        select((TABS[targetIndex] as { id: TabId }).id, true);
+        const targetIndex = (next + tabs.length) % tabs.length;
+        select((tabs[targetIndex] as { id: TabId }).id, true);
         tabButtons[targetIndex]?.focus();
       },
     }, t.label));
     tablist.append(...tabButtons);
-    const panelEls = TABS.map((t) => h('div', {
+    const panelEls = tabs.map((t) => h('div', {
       class: 'tabpanel', role: 'tabpanel', id: `panel-${t.id}`, 'aria-labelledby': `tab-${t.id}`, hidden: true,
     }));
 
     function select(id: TabId, notify: boolean): void {
       tab = id;
-      TABS.forEach((t, i) => {
+      tabs.forEach((t, i) => {
         const on = t.id === id;
         const button = tabButtons[i] as HTMLButtonElement;
         button.setAttribute('aria-selected', String(on));
@@ -193,7 +201,7 @@ export function createStationPanel({
       });
       if (!built.has(id)) {
         built.add(id);
-        build(id, panelEls[TABS.findIndex((t) => t.id === id)] as HTMLElement);
+        build(id, panelEls[tabs.findIndex((t) => t.id === id)] as HTMLElement);
       }
       if (notify) onTabChange(id);
     }
@@ -202,6 +210,7 @@ export function createStationPanel({
       if (id === 'curves') buildCurves(el);
       else if (id === 'tables') el.append(buildTablesPanel(station));
       else if (id === 'annual') buildAnnual(el);
+      else if (id === 'official') el.append(buildOfficialPanel(station, dataset.release, OFFICIAL_FILES_BASE));
       else el.append(buildCalculator(station));
     }
 
@@ -233,7 +242,8 @@ export function createStationPanel({
           h('div', { class: 'seg', role: 'group', 'aria-label': 'Quantity shown' }, ...modeButtons)),
         h('label', { class: 'inline-field', for: 'ci-select' }, '95 % limits for', limits),
         holder,
-        h('p', { class: 'chart-note' }, `Gumbel distribution fitted by the method of moments to ${station.years} years of annual maxima (${station.firstYear}–${station.lastYear}). Values are from ECCC release ${dataset.release}.`));
+        h('p', { class: 'chart-note' }, `Gumbel distribution fitted by the method of moments to ${station.years} years of annual maxima (${station.firstYear}–${station.lastYear}). Values are from ECCC release ${dataset.release}. These curves describe the past climate; for curves updated for climate change, use the `,
+          h('a', { href: IDF_CC_URL, rel: 'noopener' }, 'IDF_CC tool'), '.'));
     }
 
     function buildAnnual(el: HTMLElement): void {
@@ -272,16 +282,20 @@ export function createStationPanel({
       ...notices.map((text) => h('p', { class: 'notice' }, text)),
       tablist,
       ...panelEls);
-    select(tab, false);
+    showTabQuietly = (id) => select(tabs.some((t) => t.id === id) ? id : 'curves', false);
+    select(tabs.some((t) => t.id === tab) ? tab : 'curves', false);
   }
 
   return {
     showEmpty,
     show,
+    /**
+     * Follows the address bar. It must not report the change back: the page would then rewrite the address
+     * with the station that is still on screen, which breaks the browser's back button.
+     */
     selectTab(id) {
-      const button = stationRoot.querySelector<HTMLButtonElement>(`#tab-${id}`);
-      if (button) button.click();
-      else tab = id;
+      tab = id;
+      showTabQuietly?.(id);
     },
     get tab() {
       return tab;

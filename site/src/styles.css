@@ -24,6 +24,8 @@
   --bin-1: #86b6ef; --bin-2: #5598e7; --bin-3: #2a78d6; --bin-4: #1c5cab; --bin-5: #104281;
   --bin-none: #b8b7ae;
   --map-ring: #fcfcfb;
+  --cluster: #184f95;
+  --cluster-ink: #ffffff;
   --glass: rgba(252, 252, 251, 0.82);
   --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.06), 0 12px 32px -14px rgba(11, 11, 11, 0.22);
   --shadow-float: 0 1px 2px rgba(11, 11, 11, 0.08), 0 8px 24px -8px rgba(11, 11, 11, 0.25);
@@ -55,6 +57,8 @@
     --bin-1: #184f95; --bin-2: #256abf; --bin-3: #3987e5; --bin-4: #6da7ec; --bin-5: #9ec5f4;
     --bin-none: #5c5c57;
     --map-ring: #1a1a19;
+  --cluster: #6da7ec;
+  --cluster-ink: #0b0b0b;
     --glass: rgba(26, 26, 25, 0.82);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -14px rgba(0, 0, 0, 0.7);
     --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.7);
@@ -83,6 +87,8 @@
   --bin-1: #184f95; --bin-2: #256abf; --bin-3: #3987e5; --bin-4: #6da7ec; --bin-5: #9ec5f4;
   --bin-none: #5c5c57;
   --map-ring: #1a1a19;
+  --cluster: #6da7ec;
+  --cluster-ink: #0b0b0b;
   --glass: rgba(26, 26, 25, 0.82);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -14px rgba(0, 0, 0, 0.7);
   --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.7);
@@ -384,7 +390,7 @@ dialog h2 { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 12px; }
   .brand-title { font-size: 1rem; white-space: nowrap; }
   .topbar-actions .btn { white-space: nowrap; }
   .tab { padding: 9px 8px; font-size: 0.9375rem; }
-  .topbar-actions .btn-quiet:nth-child(2) { display: none; }
+  .topbar-actions a.btn-quiet { display: none; }
   .station-head { padding: 20px 18px 0; }
   .tabs, .notice { margin-left: 18px; margin-right: 18px; }
   .tabpanel { padding-left: 18px; padding-right: 18px; }
@@ -396,3 +402,21 @@ dialog h2 { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 12px; }
   .chart .bar { fill: CanvasText; }
   .chart .bar.over { fill: Highlight; }
 }
+
+/* ---- Official files tab -------------------------------------------------------- */
+.official-preview { display: block; border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; background: #fff; }
+.official-preview img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; }
+.file-list { list-style: none; margin: 18px 0 0; padding: 0; border-top: 1px solid var(--hair); }
+.file-row { display: flex; gap: 16px; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--hair); }
+.file-row p { margin: 2px 0 0; color: var(--ink-2); font-size: 0.875rem; max-width: 46ch; }
+.file-links { display: flex; gap: 8px; flex: none; }
+@media (max-width: 520px) { .file-row { flex-direction: column; align-items: flex-start; } }
+
+/* ---- About dialog and legend note ---------------------------------------------- */
+.about-section + .about-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hair); }
+.about-section h3 { font-size: 1.0625rem; margin-bottom: 8px; }
+.prose .citation { padding-left: 12px; border-left: 3px solid var(--accent-soft); color: var(--ink-2); font-size: 0.9375rem; }
+.prose .link-row { display: flex; flex-wrap: wrap; gap: 6px 20px; list-style: none; padding: 0; margin-top: 12px; }
+.prose .link-row li + li { margin-top: 0; }
+dialog { overflow-y: auto; }
+.legend-note { margin-top: 6px; color: var(--ink-2); font-size: 0.75rem; line-height: 1.35; }

@@ -1,6 +1,7 @@
 import '@fontsource-variable/atkinson-hyperlegible-next';
 import './styles.css';
 import { loadDataset, loadIndex } from './data';
+import { buildAbout } from './about';
 import { append, byId, clear, h } from './dom';
 import { provinceName } from './format';
 import { createMap, type ColorMode, type LegendInfo } from './map';
@@ -57,7 +58,12 @@ async function start(): Promise<void> {
     else location.hash = next;
   }
 
+  // The first route is the page loading, not a choice, so it must not take focus from the page.
+  let loading = true;
+
   async function route(): Promise<void> {
+    const isLoad = loading;
+    loading = false;
     const match = /^#\/station\/([^/]+)(?:\/([a-z]+))?$/.exec(location.hash);
     const id = match?.[1] ? decodeURIComponent(match[1]) : null;
     const station = id ? index.find((s) => s.id === id) : undefined;
@@ -72,11 +78,10 @@ async function start(): Promise<void> {
       province.value = '';
       map.setProvince('');
     }
-    const firstLoad = currentId === null;
     currentId = id;
     map.select(id, { pan: true });
     await panel.show(id);
-    if (!firstLoad) byId('station-title').focus({ preventScroll: true });
+    if (!isLoad) byId('station-title').focus({ preventScroll: true });
     if (window.matchMedia('(max-width: 900px)').matches) {
       byId('station-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -105,6 +110,7 @@ function renderLegend(info: LegendInfo): void {
     h('div', { class: 'legend-title' }, info.unit === 'mm' ? `${info.title} (mm)` : info.title),
     h('div', { class: 'legend-bar', role: 'img', 'aria-label': info.classes.map((c) => c.label).join(', ') }, ...swatches),
     h('div', { class: 'legend-ticks', 'aria-hidden': 'true' }, ...ticks),
+    h('div', { class: 'legend-note' }, 'Numbered circles group nearby stations. Zoom in to separate them.'),
     info.missingColor
       ? h('div', { class: 'legend-missing' }, h('span', { class: 'legend-dot', style: `background:${info.missingColor}` }), 'Not analysed')
       : null,
@@ -113,18 +119,7 @@ function renderLegend(info: LegendInfo): void {
 
 function setupAbout(dataset: DatasetInfo): void {
   const dialog = byId<HTMLDialogElement>('about');
-  const link = (href: string, text: string): HTMLAnchorElement => h('a', { href, rel: 'noopener' }, text);
-  clear(byId('about-body')).append(
-    h('p', {}, `This explorer shows Environment and Climate Change Canada's Short Duration Rainfall Intensity-Duration-Frequency (IDF) data, release ${dataset.release}, processed ${dataset.processingDate}: ${dataset.stationCount} stations, 5 minute to 24 hour durations, 2- to 200-year return periods.`),
-    h('p', {}, `ECCC fits a Gumbel distribution by the method of moments to each station's annual maxima. The latest year of data in any station file is ${dataset.latestYear}.`),
-    h('ul', {},
-      h('li', {}, 'This is an independent project. It is not affiliated with or endorsed by ECCC.'),
-      h('li', {}, "For design work, read ECCC's guidance on using IDF curves and cite the official files."),
-      h('li', {}, 'Station coordinates are published to the nearest minute (about 1.8 km).'),
-      h('li', {}, "Every value shown here was cross-checked against ECCC's own flat all-station tables when the data was built.")),
-    h('p', {}, 'Data: ', link('https://climate.weather.gc.ca/prods_servs/engineering_e.html', 'ECCC Engineering Climate Datasets'),
-      ', used under the ', link(dataset.licenceUrl, dataset.licence), '. Base map: ', link('https://openfreemap.org', 'OpenFreeMap'),
-      ', © ', link('https://www.openmaptiles.org/', 'OpenMapTiles'), ', data © ', link('https://www.openstreetmap.org/copyright', 'OpenStreetMap'), ' contributors.'));
+  append(clear(byId('about-body')), buildAbout(dataset));
   byId('about-open').addEventListener('click', () => dialog.showModal());
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
