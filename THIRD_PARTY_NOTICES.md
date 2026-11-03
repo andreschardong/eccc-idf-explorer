@@ -30,10 +30,27 @@ value is cross-checked against ECCC's own flat tables when the data is built.
 The base map is served by [OpenFreeMap](https://openfreemap.org) from
 [OpenMapTiles](https://www.openmaptiles.org/) schema data © OpenStreetMap contributors
 ([ODbL](https://www.openstreetmap.org/copyright)). The attribution is shown on the map and in
-the "About the data" dialog. No API key or account is used, and no data about visitors is sent
-anywhere by this project.
+the About dialog. No API key or account is used.
+
+## What visitors' browsers contact
+
+The site is static and has no server of its own, no analytics, no cookies and no sign-in. A visitor's browser does
+make requests to two other hosts, which see the visitor's IP address as any web server does:
+
+- **OpenFreeMap** (`tiles.openfreemap.org`) for map tiles and map fonts.
+- **Cloudflare** (`eccc-idf-files.andreschardong.workers.dev`) for ECCC's own PDF, PNG and text files, when the
+  Official tab is opened or a file is followed. The site itself is served by GitHub Pages.
+
+The only thing the site stores in the browser is the chosen colour theme (`localStorage`), and only after the
+theme button is used.
+
+## ECCC's own files, mirrored
+
+The files on the Cloudflare host are ECCC's PDF, PNG and text files for release 3.40, byte for byte as published.
+The PDFs and PNGs carry ECCC and Government of Canada marks because they are ECCC's documents; they are reproduced
+unchanged and do not imply that this project is endorsed by ECCC or the Government of Canada.
 
 ## Build and test tooling
 
-Vite, Vitest and TypeScript (MIT / Apache-2.0), xUnit v3 (Apache-2.0), NSubstitute (BSD-3-Clause)
-and Shouldly (BSD-3-Clause) are used at build and test time only and are not shipped.
+Vite, Vitest, happy-dom, Playwright and TypeScript (MIT / Apache-2.0), axe-core (MPL-2.0), xUnit v3 (Apache-2.0),
+NSubstitute (BSD-3-Clause) and Shouldly (BSD-3-Clause) are used at build and test time only and are not shipped.
