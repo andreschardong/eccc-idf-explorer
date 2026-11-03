@@ -40,7 +40,8 @@ public sealed record StationDetail(
     IReadOnlyList<int> AnnualMaxYears,
     IReadOnlyList<IReadOnlyList<double?>> AnnualMaxDepths,
     AnnualSummary AnnualSummary,
-    PowerLawFit Fit);
+    PowerLawFit Fit,
+    string? OfficialFileStem = null);
 
 public sealed record AnnualSummary(
     IReadOnlyList<int?> SampleSizes,

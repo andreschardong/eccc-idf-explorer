@@ -12,6 +12,10 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
     [GeneratedRegex(@"^idf_v\d+-\d+_\d{4}_\d{1,2}_\d{1,2}_\d{3}_[A-Z]{2}_[0-9A-Z]{7}_.+\.txt$", RegexOptions.IgnoreCase)]
     private static partial Regex StationFileRegex();
 
+    // Every file that belongs to one station: the .txt plus the PDF and PNG plots (_qq, _r, _t as well as the main graph).
+    [GeneratedRegex(@"^idf_v(?<major>\d+)-(?<minor>\d+)_\d{4}_\d{1,2}_\d{1,2}_\d{3}_[A-Z]{2}_(?<id>[0-9A-Z]{7})_.+\.(txt|pdf|png)$", RegexOptions.IgnoreCase)]
+    private static partial Regex StationAssetRegex();
+
     // Aggregates: idf_v3-40_2025_12_5_return_period_amounts.txt, ..._log_included.txt, ...
     [GeneratedRegex(@"^idf_v\d+-\d+_\d{4}_\d{1,2}_\d{1,2}_(?<kind>return_period_amounts|return_period_rates|return_period_conf_interval|log_included)\.txt$", RegexOptions.IgnoreCase)]
     private static partial Regex AggregateFileRegex();
@@ -20,18 +24,18 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
         string path,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        await foreach (var file in EnumerateTextFilesAsync(path, IsStationFile, ct))
+        await foreach (var file in EnumerateFilesAsync(path, IsStationFile, ct))
         {
-            yield return parser.Parse(file.Text, file.Name);
+            yield return parser.Parse(Encoding.Latin1.GetString(file.Content), file.Name);
         }
     }
 
     public async Task<AggregateTables> ReadAggregateTablesAsync(string path, CancellationToken ct = default)
     {
         var found = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        await foreach (var file in EnumerateTextFilesAsync(path, name => AggregateFileRegex().IsMatch(name), ct))
+        await foreach (var file in EnumerateFilesAsync(path, name => AggregateFileRegex().IsMatch(name), ct))
         {
-            found[AggregateFileRegex().Match(file.Name).Groups["kind"].Value] = file.Text;
+            found[AggregateFileRegex().Match(file.Name).Groups["kind"].Value] = Encoding.Latin1.GetString(file.Content);
         }
 
         return new AggregateTables(
@@ -41,9 +45,61 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
             found.GetValueOrDefault("log_included"));
     }
 
+    public async Task<OfficialFilesResult> ExtractOfficialFilesAsync(
+        string path,
+        string outputDirectory,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+
+        string? release = null;
+        var stations = new HashSet<string>(StringComparer.Ordinal);
+        var stationFiles = 0;
+        long bytes = 0;
+
+        // Release-level files (notes, change log, flat tables) can arrive before the first station file
+        // names the release, so they wait here; together they are only a few megabytes.
+        var releaseLevel = new List<ArchiveFile>();
+
+        await foreach (var file in EnumerateFilesAsync(path, _ => true, ct))
+        {
+            var match = StationAssetRegex().Match(file.Name);
+            if (!match.Success)
+            {
+                releaseLevel.Add(file);
+                continue;
+            }
+
+            release ??= $"{match.Groups["major"].Value}.{match.Groups["minor"].Value}";
+            var id = match.Groups["id"].Value;
+            stations.Add(id);
+            stationFiles++;
+            bytes += await WriteAsync(Path.Combine(outputDirectory, $"v{release}", "stations", id), file, ct);
+        }
+
+        if (release is null)
+        {
+            throw new IdfFormatException("No ECCC station file was found, so the release cannot be named.");
+        }
+
+        foreach (var file in releaseLevel)
+        {
+            bytes += await WriteAsync(Path.Combine(outputDirectory, $"v{release}", "release"), file, ct);
+        }
+
+        return new OfficialFilesResult(release, stations.Count, stationFiles, releaseLevel.Count, bytes);
+    }
+
     private static bool IsStationFile(string name) => StationFileRegex().IsMatch(name);
 
-    private static async IAsyncEnumerable<TextFile> EnumerateTextFilesAsync(
+    private static async Task<long> WriteAsync(string directory, ArchiveFile file, CancellationToken ct)
+    {
+        Directory.CreateDirectory(directory);
+        await File.WriteAllBytesAsync(Path.Combine(directory, file.Name), file.Content, ct);
+        return file.Content.LongLength;
+    }
+
+    private static async IAsyncEnumerable<ArchiveFile> EnumerateFilesAsync(
         string path,
         Func<string, bool> include,
         [EnumeratorCancellation] CancellationToken ct)
@@ -56,17 +112,17 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
                 .Order(StringComparer.Ordinal);
             foreach (var file in files)
             {
-                await foreach (var textFile in ReadFileAsync(file, include, ct))
+                await foreach (var archiveFile in ReadFileAsync(file, include, ct))
                 {
-                    yield return textFile;
+                    yield return archiveFile;
                 }
             }
         }
         else if (File.Exists(path))
         {
-            await foreach (var textFile in ReadFileAsync(path, include, ct))
+            await foreach (var archiveFile in ReadFileAsync(path, include, ct))
             {
-                yield return textFile;
+                yield return archiveFile;
             }
         }
         else
@@ -75,7 +131,7 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
         }
     }
 
-    private static async IAsyncEnumerable<TextFile> ReadFileAsync(
+    private static async IAsyncEnumerable<ArchiveFile> ReadFileAsync(
         string file,
         Func<string, bool> include,
         [EnumeratorCancellation] CancellationToken ct)
@@ -84,19 +140,18 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
         if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
         {
             await using var stream = File.OpenRead(file);
-            await foreach (var textFile in ReadZipAsync(stream, include, ct))
+            await foreach (var archiveFile in ReadZipAsync(stream, include, ct))
             {
-                yield return textFile;
+                yield return archiveFile;
             }
         }
         else if (include(name))
         {
-            await using var stream = File.OpenRead(file);
-            yield return new TextFile(name, await ReadTextAsync(stream, ct));
+            yield return new ArchiveFile(name, await File.ReadAllBytesAsync(file, ct));
         }
     }
 
-    private static async IAsyncEnumerable<TextFile> ReadZipAsync(
+    private static async IAsyncEnumerable<ArchiveFile> ReadZipAsync(
         Stream stream,
         Func<string, bool> include,
         [EnumeratorCancellation] CancellationToken ct)
@@ -106,6 +161,10 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
         {
             ct.ThrowIfCancellationRequested();
             var name = entry.Name;
+            if (name.Length == 0)
+            {
+                continue; // a folder entry
+            }
 
             if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
             {
@@ -117,24 +176,23 @@ public sealed partial class IdfArchiveReader(IIdfStationParser parser) : IIdfArc
                 }
 
                 buffer.Position = 0;
-                await foreach (var textFile in ReadZipAsync(buffer, include, ct))
+                await foreach (var archiveFile in ReadZipAsync(buffer, include, ct))
                 {
-                    yield return textFile;
+                    yield return archiveFile;
                 }
             }
             else if (include(name))
             {
-                await using var entryStream = await entry.OpenAsync(ct);
-                yield return new TextFile(name, await ReadTextAsync(entryStream, ct));
+                using var content = new MemoryStream();
+                await using (var entryStream = await entry.OpenAsync(ct))
+                {
+                    await entryStream.CopyToAsync(content, ct);
+                }
+
+                yield return new ArchiveFile(name, content.ToArray());
             }
         }
     }
 
-    private static async Task<string> ReadTextAsync(Stream stream, CancellationToken ct)
-    {
-        using var reader = new StreamReader(stream, Encoding.Latin1);
-        return await reader.ReadToEndAsync(ct);
-    }
-
-    private readonly record struct TextFile(string Name, string Text);
+    private readonly record struct ArchiveFile(string Name, byte[] Content);
 }

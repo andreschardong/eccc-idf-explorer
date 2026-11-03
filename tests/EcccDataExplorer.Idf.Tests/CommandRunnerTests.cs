@@ -26,6 +26,9 @@ public sealed class CommandRunnerTests : IDisposable
         writer.WriteAsync(Arg.Any<IReadOnlyCollection<IdfStation>>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new DatasetInfo("3.40", new DateOnly(2025, 12, 5), 2016, 1, "Gumbel", "src", "OGL", "url"));
 
+        reader.ExtractOfficialFilesAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new OfficialFilesResult("3.40", 751, 6759, 7, 693_000_000));
+
         runner = new CommandRunner(reader, checker, writer, output, error);
     }
 
@@ -115,6 +118,18 @@ public sealed class CommandRunnerTests : IDisposable
         code.ShouldBe(0);
         checker.DidNotReceiveWithAnyArgs().Compare(default!, default!);
         await writer.Received(1).WriteAsync(Arg.Any<IReadOnlyCollection<IdfStation>>(), "out", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task WhenExtractIsRequested_ShouldUnpackTheReleaseAndReportCounts()
+    {
+        var code = await runner.RunAsync(["extract-official-files", "bundle.zip", "out"], TestContext.Current.CancellationToken);
+
+        code.ShouldBe(0);
+        await reader.Received(1).ExtractOfficialFilesAsync("bundle.zip", "out", Arg.Any<CancellationToken>());
+        output.ToString().ShouldContain("Unpacked release 3.40");
+        output.ToString().ShouldContain("751 stations");
+        await writer.DidNotReceiveWithAnyArgs().WriteAsync(default!, default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]

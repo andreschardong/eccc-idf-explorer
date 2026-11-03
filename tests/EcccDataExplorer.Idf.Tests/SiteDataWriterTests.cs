@@ -63,6 +63,30 @@ public class SiteDataWriterTests
     }
 
     [Fact]
+    public async Task WhenStationHasAnOfficialFileStem_ShouldWriteItToTheDetailFile()
+    {
+        using var temp = new TempDirectory();
+
+        await writer.WriteAsync(Stations(), temp.Path, TestContext.Current.CancellationToken);
+
+        using var detail = JsonDocument.Parse(await File.ReadAllTextAsync(temp.Combine("stations", "8300301.json"), TestContext.Current.CancellationToken));
+        detail.RootElement.GetProperty("officialFileStem").GetString()
+            .ShouldBe("idf_v3-40_2025_12_5_830_PE_8300301_CHARLOTTETOWN_A");
+    }
+
+    [Fact]
+    public async Task WhenStationHasNoOfficialFileStem_ShouldOmitTheProperty()
+    {
+        using var temp = new TempDirectory();
+        var station = TestData.Parse(TestData.Charlottetown) with { OfficialFileStem = null };
+
+        await writer.WriteAsync([station], temp.Path, TestContext.Current.CancellationToken);
+
+        using var detail = JsonDocument.Parse(await File.ReadAllTextAsync(temp.Combine("stations", "8300301.json"), TestContext.Current.CancellationToken));
+        detail.RootElement.TryGetProperty("officialFileStem", out _).ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task WhenWrittenTwice_ShouldProduceIdenticalBytes()
     {
         using var first = new TempDirectory();
