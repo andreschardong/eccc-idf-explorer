@@ -12,7 +12,8 @@ test.describe('opening the explorer', () => {
     const { groups } = await mapCounts(page);
     expect(groups).toBeGreaterThan(10);
     await expect(page.locator('#legend')).toContainText('Years of record');
-    await expect(page.locator('#legend')).toContainText('Numbered circles group nearby stations');
+    await expect(page.locator('#legend')).toContainText('Numbered circles group stations');
+    await expect(page.locator('#legend .legend-groups li')).toHaveText(['2–9 stations', '10–49', '50–99', '100 or more']);
   });
 
   test('invites a choice and lists ways in', async ({ page }) => {
@@ -129,6 +130,21 @@ test.describe('a station', () => {
     }).toPass({ timeout: 10_000 });
     await page.getByRole('button', { name: 'Depth (mm)' }).click();
     await expect(page.getByText('Rainfall depth (mm)').first()).toBeVisible();
+  });
+
+  test('shows ECCC\'s published values as dots and its equations as lines, which can be switched off', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/curves');
+    const chart = page.locator('#panel-curves');
+    await expect(chart.locator('circle.dot')).toHaveCount(63);
+    await expect(chart.locator('path.fit')).toHaveCount(7);
+    await expect(chart.locator('path.line')).toHaveCount(0);
+    await chart.getByLabel("Show ECCC's fitted equations").uncheck();
+    await expect(chart.locator('path.fit')).toHaveCount(0);
+    await expect(chart.locator('circle.dot')).toHaveCount(63);
+    await chart.getByLabel("Show ECCC's fitted equations").check();
+    await chart.getByText("ECCC's fitted equations", { exact: true }).click();
+    await expect(chart.locator('details.equations li')).toHaveCount(7);
+    await expect(chart.locator('details.equations li').nth(5)).toContainText('R = 48.7 × T^−0.735');
   });
 
   test('draws a confidence band on request', async ({ page }) => {
