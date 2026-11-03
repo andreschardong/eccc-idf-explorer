@@ -39,7 +39,7 @@ make requests to two other hosts, which see the visitor's IP address as any web 
 
 - **OpenFreeMap** (`tiles.openfreemap.org`) for map tiles and map fonts.
 - **Cloudflare** (`eccc-idf-files.andreschardong.workers.dev`) for ECCC's own PDF, PNG and text files, when the
-  Official tab is opened or a file is followed. The site itself is served by GitHub Pages.
+  Files tab is opened or a file is downloaded. The site itself is also served by Cloudflare.
 
 The only thing the site stores in the browser is the chosen colour theme (`localStorage`), and only after the
 theme button is used.

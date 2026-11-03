@@ -44,11 +44,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Upload the Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: site/dist
 
   e2e:
     name: Browser tests (Playwright)
@@ -76,18 +71,3 @@ jobs:
             site/playwright-report
             site/test-results
           retention-days: 7
-
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: [dotnet, site, e2e]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5

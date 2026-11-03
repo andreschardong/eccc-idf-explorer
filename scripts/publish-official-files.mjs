@@ -76,7 +76,7 @@ writeFileSync(join(output, 'index.html'), `<!doctype html>
 <h1>ECCC rainfall IDF files</h1>
 <p>A mirror of the files in Environment and Climate Change Canada's short-duration rainfall
 intensity-duration-frequency (IDF) releases, unpacked so each station's graphs and text file have their own address.
-The files are unchanged. The <a href="https://andreschardong.github.io/eccc-idf-explorer/">IDF Explorer</a> links here.</p>
+The files are unchanged. The <a href="https://eccc-idf-explorer.andreschardong.workers.dev">IDF Explorer</a> links here.</p>
 <p>Contains information licensed under the
 <a href="https://open.canada.ca/en/open-government-licence-canada">Open Government Licence – Canada</a>.
 This mirror is independent and is not affiliated with or endorsed by ECCC. The official source is the

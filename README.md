@@ -7,7 +7,7 @@ An interactive map and chart viewer for Environment and Climate Change Canada's 
 **intensity-duration-frequency (IDF)** data: **release 3.40**, 751 stations, 5 minute to 24 hour
 storms, 2- to 200-year return periods.
 
-**[Open the explorer](https://andreschardong.github.io/eccc-idf-explorer/)**
+**[Open the explorer](https://eccc-idf-explorer.andreschardong.workers.dev)**
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/explorer-dark.png">
@@ -26,8 +26,10 @@ storms, 2- to 200-year return periods.
 - **Interpolate.** A calculator evaluates the fit for any duration from 5 minutes to 24 hours and
   shows ECCC's published value next to it where one exists.
 - **Take the data with you.** CSV and JSON download for every station.
-- **Open ECCC's own files.** Each station's official IDF graph, quantile-quantile plot, return-level plot, trend
-  plot (PDF and PNG) and station text file, unchanged, on the Official tab. See [Official files](#official-files).
+- **See and download ECCC's own files for every station.** A **Download files** button sits beside Download CSV and
+  Download JSON. It opens the Files tab: view the official IDF graph, quantile-quantile plot, return-level plot and
+  trend plot, read the station's text file in place, download any file (PDF, PNG or TXT) under ECCC's own name, or
+  take all nine as one ZIP. See [Official files](#official-files).
 
 It works in light and dark, on phones, with a screen reader (the tables are the text alternative to
 the charts), and with reduced motion.
@@ -60,6 +62,20 @@ npm run dev        # http://localhost:5173
 ```
 
 `npm run build` writes a static site to `site/dist` that any web host can serve.
+
+## Publish
+
+The explorer is served by a Cloudflare Worker with static assets, the same way as
+[andreschardong.com](https://andreschardong.com), at https://eccc-idf-explorer.andreschardong.workers.dev.
+
+```sh
+cd site
+npx wrangler login      # once
+npm run deploy          # builds, then uploads site/dist
+```
+
+The settings are in [`site/wrangler.jsonc`](site/wrangler.jsonc) and the cache headers in
+[`site/public/_headers`](site/public/_headers).
 
 ## Regenerate the data
 
@@ -118,7 +134,7 @@ npx playwright install chromium && npm run test:e2e   # 40 browser tests against
   dark mode and a phone layout, and they fail on any console error. They also run an
   [axe-core](https://github.com/dequelabs/axe-core) accessibility scan (WCAG 2.2 A and AA) on every view.
 
-CI runs all three, and the site is deployed only when they pass.
+CI runs all three on every push and pull request. Run the same checks before `npm run deploy`.
 
 ## Using the numbers
 
