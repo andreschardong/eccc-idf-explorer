@@ -129,8 +129,8 @@ npx playwright install chromium && npm run test:e2e   # 40 browser tests against
 - The **parser tests** run against real station files, including the awkward ones: stations with durations ECCC
   did not analyse, statistics that print as `*****` or `NaN`, and a "warning" block inside a data table. See
   [docs/data-format.md](docs/data-format.md).
-- The **component tests** run the real UI code (tables, calculator, search, both charts, the Official tab, the About
-  dialog and the whole station panel) against real station data.
+- The **component tests** run the real UI code (tables, calculator, search, both charts, the Official tab, the two About
+  dialogs, the dark basemap's colours and the whole station panel) against real station data.
 - The **browser tests** drive the built site in Chromium with the basemap and files host stubbed, so they never
   depend on the internet. They cover search, grouping, tabs, keyboard use, downloads, deep links, the back button,
   dark mode and a phone layout, and they fail on any console error. They also run an
