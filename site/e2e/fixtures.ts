@@ -9,10 +9,15 @@ const EMPTY_STYLE = {
   sources: {},
   layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#d8dee3' } }],
 };
-const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+export const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
-export const test = base.extend({
-  page: async ({ page }, use) => {
+/** What the stubbed files host serves, so tests can check the bytes that come back out of a download. */
+export const STUB_PDF = Buffer.from('%PDF-1.4 e2e stub');
+export const STUB_TEXT = Buffer.from('Donn\xe9es sur l\'intensit\xe9\n2025/12/5\n', 'latin1');
+
+export const test = base.extend<{ allowedConsoleErrors: RegExp[] }>({
+  allowedConsoleErrors: [[], { option: true }],
+  page: async ({ page, allowedConsoleErrors }, use) => {
     const consoleErrors: string[] = [];
     page.on('pageerror', (error) => consoleErrors.push(String(error)));
     page.on('console', (message) => {
@@ -25,10 +30,17 @@ export const test = base.extend({
       if (url.includes('/fonts/')) return route.fulfill({ body: '', contentType: 'application/x-protobuf' });
       return route.abort();
     });
-    await page.route('https://eccc-idf-files.andreschardong.workers.dev/**', (route) => route.fulfill({ body: PIXEL, contentType: 'image/png' }));
+    await page.route('https://eccc-idf-files.andreschardong.workers.dev/**', (route) => {
+      const url = route.request().url();
+      const cors = { 'access-control-allow-origin': '*' };
+      if (url.endsWith('.pdf')) return route.fulfill({ body: STUB_PDF, contentType: 'application/pdf', headers: cors });
+      if (url.endsWith('.txt')) return route.fulfill({ body: STUB_TEXT, contentType: 'text/plain', headers: cors });
+      return route.fulfill({ body: PIXEL, contentType: 'image/png', headers: cors });
+    });
 
     await use(page);
-    expect(consoleErrors, 'the page logged errors to the console').toEqual([]);
+    const unexpected = consoleErrors.filter((message) => !allowedConsoleErrors.some((pattern) => pattern.test(message)));
+    expect(unexpected, 'the page logged errors to the console').toEqual([]);
   },
 });
 

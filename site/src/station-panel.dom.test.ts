@@ -161,6 +161,33 @@ describe('station panel', () => {
       expect(String(body).split('\r\n')).toHaveLength(1 + 63 + 1);
     });
 
+    it('puts the ECCC files in the same row as the CSV and JSON downloads', async () => {
+      const ui = mount();
+      await ui.panel.show('8300301');
+      const row = [...ui.stationRoot.querySelectorAll('.station-actions > *')].map(text);
+      expect(row).toEqual(['Download CSV', 'Download JSON', 'Download files', 'Copy link']);
+    });
+
+    it('opens the Files tab, tells the page, and puts the keyboard on the tab', async () => {
+      const ui = mount();
+      await ui.panel.show('8300301');
+      expect(ui.selectedTab()).toBe('Curves');
+      ui.button('Download files')?.click();
+      expect(ui.selectedTab()).toBe('Files');
+      expect(ui.visiblePanel()?.id).toBe('panel-files');
+      expect(ui.visiblePanel()?.querySelector('img')).not.toBeNull();
+      expect(ui.onTabChange).toHaveBeenCalledExactlyOnceWith('files');
+      expect(document.activeElement?.id).toBe('tab-files');
+    });
+
+    it('has no Download files button for a station without ECCC file names', async () => {
+      const { officialFileStem: _stem, ...withoutStem } = charlottetown;
+      FIXTURES['9999999'] = { ...withoutStem, id: '9999999' };
+      const ui = mount();
+      await ui.panel.show('9999999');
+      expect([...ui.stationRoot.querySelectorAll('.station-actions > *')].map(text)).toEqual(['Download CSV', 'Download JSON', 'Copy link']);
+    });
+
     it('links the JSON file for download', async () => {
       const ui = mount();
       await ui.panel.show('8300301');
@@ -171,10 +198,10 @@ describe('station panel', () => {
   });
 
   describe('tabs', () => {
-    it('offers curves, tables, annual maxima, the calculator and the official files, curves first', async () => {
+    it('offers curves, tables, annual maxima, the calculator and the files, curves first', async () => {
       const ui = mount();
       await ui.panel.show('8300301');
-      expect(ui.tabs().map(text)).toEqual(['Curves', 'Tables', 'Annual', 'Calculator', 'Official']);
+      expect(ui.tabs().map(text)).toEqual(['Curves', 'Tables', 'Annual', 'Calculator', 'Files']);
       expect(ui.selectedTab()).toBe('Curves');
       expect(ui.visiblePanel()?.id).toBe('panel-curves');
       expect(ui.visiblePanel()?.querySelector('svg')).not.toBeNull();
@@ -209,11 +236,11 @@ describe('station panel', () => {
       press(ui.tabs()[0] as Element, 'ArrowRight');
       expect(ui.selectedTab()).toBe('Tables');
       press(ui.tabs()[1] as Element, 'End');
-      expect(ui.selectedTab()).toBe('Official');
+      expect(ui.selectedTab()).toBe('Files');
       press(ui.tabs()[4] as Element, 'ArrowRight');
       expect(ui.selectedTab()).toBe('Curves');
       press(ui.tabs()[0] as Element, 'ArrowLeft');
-      expect(ui.selectedTab()).toBe('Official');
+      expect(ui.selectedTab()).toBe('Files');
       press(ui.tabs()[4] as Element, 'Home');
       expect(ui.selectedTab()).toBe('Curves');
     });
@@ -246,19 +273,20 @@ describe('station panel', () => {
       const { officialFileStem: _stem, ...withoutStem } = charlottetown;
       FIXTURES['9999999'] = { ...withoutStem, id: '9999999' };
       const ui = mount();
-      ui.panel.selectTab('official');
+      ui.panel.selectTab('files');
       await ui.panel.show('9999999');
       expect(ui.tabs().map(text)).toEqual(['Curves', 'Tables', 'Annual', 'Calculator']);
       expect(ui.selectedTab()).toBe('Curves');
     });
 
-    it('shows the official graph and files on the Official tab', async () => {
+    it('shows the files viewer on the Files tab, with the graph and the four plots to choose from', async () => {
       const ui = mount();
       await ui.panel.show('8300301');
       ui.tabs()[4]?.click();
-      const official = ui.visiblePanel();
-      expect(official?.querySelector('img')?.getAttribute('src')).toContain('/v3.40/stations/8300301/idf_v3-40_2025_12_5_830_PE_8300301_CHARLOTTETOWN_A.png');
-      expect(official?.querySelectorAll('.file-row')).toHaveLength(5);
+      const files = ui.visiblePanel();
+      expect(files?.querySelector('img')?.getAttribute('src')).toContain('/v3.40/stations/8300301/idf_v3-40_2025_12_5_830_PE_8300301_CHARLOTTETOWN_A.png');
+      expect(files?.querySelectorAll('.seg button')).toHaveLength(4);
+      expect(text(files?.querySelector('h3') ?? null)).toBe('Files for this station');
     });
   });
 
@@ -322,6 +350,6 @@ describe('station panel', () => {
 
 describe('tab list', () => {
   it('has a stable set of ids the address bar can use', () => {
-    expect(TABS.map((tab) => tab.id)).toEqual(['curves', 'tables', 'annual', 'calc', 'official']);
+    expect(TABS.map((tab) => tab.id)).toEqual(['curves', 'tables', 'annual', 'calc', 'files']);
   });
 });

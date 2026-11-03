@@ -21,7 +21,7 @@ test.describe('accessibility scan (axe-core)', () => {
     ['tables', '#/station/6158355/tables'],
     ['annual maxima', '#/station/6158355/annual'],
     ['calculator', '#/station/6158355/calc'],
-    ['official files', '#/station/6158355/official'],
+    ['files', '#/station/6158355/files'],
     ['a station with unanalysed durations', '#/station/1012055/curves'],
   ] as const) {
     test(`station: ${name}`, async ({ page }) => {
@@ -30,6 +30,14 @@ test.describe('accessibility scan (axe-core)', () => {
       expect(await scan(page)).toEqual([]);
     });
   }
+
+  test('the Files tab with the station text open and another plot chosen', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    await page.getByRole('button', { name: 'Return levels' }).click();
+    await page.getByRole('button', { name: 'View text' }).click();
+    await expect(page.locator('#panel-files pre')).toBeVisible();
+    expect(await scan(page)).toEqual([]);
+  });
 
   test('the About dialog', async ({ page }) => {
     await openExplorer(page);
