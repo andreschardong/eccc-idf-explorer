@@ -110,7 +110,9 @@ function renderLegend(info: LegendInfo): void {
     h('div', { class: 'legend-title' }, info.unit === 'mm' ? `${info.title} (mm)` : info.title),
     h('div', { class: 'legend-bar', role: 'img', 'aria-label': info.classes.map((c) => c.label).join(', ') }, ...swatches),
     h('div', { class: 'legend-ticks', 'aria-hidden': 'true' }, ...ticks),
-    h('div', { class: 'legend-note' }, 'Numbered circles group nearby stations. Zoom in to separate them.'),
+    h('div', { class: 'legend-groups' },
+      h('span', { class: 'legend-group-title' }, 'Numbered circles group stations; zoom in to separate them'),
+      h('ul', { 'aria-label': 'Group sizes' }, ...info.groups.map((g) => h('li', {}, h('i', { style: `background:${g.color}` }), g.label)))),
     info.missingColor
       ? h('div', { class: 'legend-missing' }, h('span', { class: 'legend-dot', style: `background:${info.missingColor}` }), 'Not analysed')
       : null,

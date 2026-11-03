@@ -9,6 +9,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import {
   RECORD_LENGTH_BREAKS, binLabels, quantileBreaks,
 } from './binning';
+import { textOn } from './contrast';
 import { prettyName } from './format';
 import { cssVar, currentTheme } from './theme';
 import type { StationSummary } from './types';
@@ -24,6 +25,8 @@ export interface LegendInfo {
   breaks: number[];
   /** Colour for stations without a value, or null when every station has one. */
   missingColor: string | null;
+  /** The colours of the numbered group circles, smallest groups first. */
+  groups: { label: string; color: string }[];
 }
 
 export interface StationMap {
@@ -54,6 +57,10 @@ const CLUSTER_COUNT = 'station-cluster-count';
 /** Stations group into numbered circles up to this zoom; flying to a station (zoom 6.5) shows them singly. */
 const CLUSTER_MAX_ZOOM = 5;
 const UNCLUSTERED: maplibregl.ExpressionSpecification = ['!', ['has', 'point_count']];
+/** A group of 10 or more is the next colour; so is one of 50, and one of 100. */
+const GROUP_BREAKS = [10, 50, 100] as const;
+const GROUP_RADII = [15, 19, 24, 29] as const;
+const GROUP_LABELS = ['2–9 stations', '10–49', '50–99', '100 or more'] as const;
 
 const MODES: Record<ColorMode, { title: string; unit: string; property: 'years' | 'd1h' | 'd24h' }> = {
   years: { title: 'Years of record', unit: 'yr', property: 'years' },
@@ -151,9 +158,20 @@ export function createMap(
         classes: labels.map((label, i) => ({ label, color: colours[Math.min(i, colours.length - 1)] as string })),
         breaks,
         missingColor: values.some((v) => v === undefined || v === null) ? none : null,
+        groups: groupColours().map((color, i) => ({ label: GROUP_LABELS[i] as string, color })),
       },
     };
   }
+
+  /** The four group colours from the CSS tokens, for the current theme. */
+  const groupColours = (): string[] => [1, 2, 3, 4].map((n) => cssVar(`--cluster-${n}`));
+
+  /** ['step', point_count, v0, 10, v1, 50, v2, 100, v3]: one value per group size, as a map expression. */
+  const bySize = (values: readonly (string | number)[]): maplibregl.ExpressionSpecification => {
+    const [first, ...rest] = values;
+    const stops = rest.flatMap((value, i) => [GROUP_BREAKS[i] as number, value]);
+    return ['step', ['get', 'point_count'], first, ...stops] as unknown as maplibregl.ExpressionSpecification;
+  };
 
   function idFilter(id: string | null): maplibregl.FilterSpecification {
     return ['all', UNCLUSTERED, ['==', ['get', 'id'], id ?? '']];
@@ -171,8 +189,8 @@ export function createMap(
       source: SOURCE,
       filter: ['has', 'point_count'],
       paint: {
-        'circle-color': cssVar('--cluster'),
-        'circle-radius': ['step', ['get', 'point_count'], 15, 10, 19, 50, 25],
+        'circle-color': bySize(groupColours()),
+        'circle-radius': bySize(GROUP_RADII),
         'circle-stroke-width': 2.5,
         'circle-stroke-color': cssVar('--map-ring'),
       },
@@ -183,7 +201,7 @@ export function createMap(
       source: SOURCE,
       filter: ['has', 'point_count'],
       layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-allow-overlap': true },
-      paint: { 'text-color': cssVar('--cluster-ink') },
+      paint: { 'text-color': bySize(groupColours().map(textOn)) },
     });
     map.addLayer({
       id: HALO,
@@ -233,9 +251,9 @@ export function createMap(
     map.setPaintProperty(HALO, 'circle-color', cssVar('--accent'));
     map.setPaintProperty(HOVER, 'circle-stroke-color', cssVar('--ink'));
     map.setPaintProperty(SELECTED, 'circle-stroke-color', cssVar('--ink'));
-    map.setPaintProperty(CLUSTERS, 'circle-color', cssVar('--cluster'));
+    map.setPaintProperty(CLUSTERS, 'circle-color', bySize(groupColours()));
     map.setPaintProperty(CLUSTERS, 'circle-stroke-color', cssVar('--map-ring'));
-    map.setPaintProperty(CLUSTER_COUNT, 'text-color', cssVar('--cluster-ink'));
+    map.setPaintProperty(CLUSTER_COUNT, 'text-color', bySize(groupColours().map(textOn)));
     map.getSource<maplibregl.GeoJSONSource>(SOURCE)?.setData(visibleFeatures());
     map.setFilter(LAYER, UNCLUSTERED);
     map.setFilter(HALO, idFilter(state.selected));
