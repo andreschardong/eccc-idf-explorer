@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>EcccDataExplorer.Idf</RootNamespace>
+    <Description>Reader for the Environment and Climate Change Canada (ECCC) rainfall IDF station files, v3.40.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- XML docs only where behaviour is non-obvious: members that restate their name stay undocumented. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+
+</Project>
