@@ -51,7 +51,8 @@ internal static class SiteDataMapper
                 station.Interpolation.Coefficient,
                 station.Interpolation.Exponent,
                 station.Interpolation.StandardError,
-                station.Interpolation.MeanPercentError));
+                station.Interpolation.MeanPercentError),
+            station.OfficialFileStem);
 
     public static DatasetInfo ToDatasetInfo(IReadOnlyCollection<IdfStation> stations)
     {

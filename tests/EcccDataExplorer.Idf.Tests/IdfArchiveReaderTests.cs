@@ -101,6 +101,84 @@ public class IdfArchiveReaderTests
         });
     }
 
+    [Fact]
+    public async Task WhenBundleIsExtracted_ShouldWriteStationFilesUnderClimateIdFolders()
+    {
+        using var temp = new TempDirectory();
+        var bundle = WriteBundle(temp);
+        var output = temp.Combine("out");
+
+        await reader.ExtractOfficialFilesAsync(bundle, output, TestContext.Current.CancellationToken);
+
+        File.Exists(Path.Combine(output, "v3.40", "stations", "8300301", TestData.Charlottetown)).ShouldBeTrue();
+        File.Exists(Path.Combine(output, "v3.40", "stations", "8300301", "idf_v3-40_2025_12_5_830_PE_8300301_CHARLOTTETOWN_A.pdf")).ShouldBeTrue();
+        File.Exists(Path.Combine(output, "v3.40", "stations", "1012055", TestData.LakeCowichan)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task WhenBundleIsExtracted_ShouldKeepEveryFileByteForByte()
+    {
+        using var temp = new TempDirectory();
+        var bundle = WriteBundle(temp);
+        var output = temp.Combine("out");
+
+        await reader.ExtractOfficialFilesAsync(bundle, output, TestContext.Current.CancellationToken);
+
+        var text = await File.ReadAllBytesAsync(Path.Combine(output, "v3.40", "stations", "8300301", TestData.Charlottetown), TestContext.Current.CancellationToken);
+        text.ShouldBe(TestData.ReadBytes(TestData.Charlottetown));
+        var pdf = await File.ReadAllBytesAsync(Path.Combine(output, "v3.40", "stations", "8300301", "idf_v3-40_2025_12_5_830_PE_8300301_CHARLOTTETOWN_A.pdf"), TestContext.Current.CancellationToken);
+        pdf.ShouldBe([1, 2, 3]);
+    }
+
+    [Fact]
+    public async Task WhenBundleIsExtracted_ShouldPutReleaseLevelFilesUnderRelease()
+    {
+        using var temp = new TempDirectory();
+        var bundle = WriteBundle(temp);
+        var output = temp.Combine("out");
+
+        await reader.ExtractOfficialFilesAsync(bundle, output, TestContext.Current.CancellationToken);
+
+        var release = Path.Combine(output, "v3.40", "release");
+        File.Exists(Path.Combine(release, "whats_new_IDF_v3-40.pdf")).ShouldBeTrue();
+        File.Exists(Path.Combine(release, "idf_v3-40_2025_12_5_return_period_amounts.txt")).ShouldBeTrue();
+        File.Exists(Path.Combine(release, "idfm0019.txt")).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task WhenBundleIsExtracted_ShouldReportWhatWasWritten()
+    {
+        using var temp = new TempDirectory();
+        var bundle = WriteBundle(temp);
+
+        var result = await reader.ExtractOfficialFilesAsync(bundle, temp.Combine("out"), TestContext.Current.CancellationToken);
+
+        result.Release.ShouldBe("3.40");
+        result.Stations.ShouldBe(2);
+        result.StationFiles.ShouldBe(3);
+        result.ReleaseFiles.ShouldBe(7);
+        result.Bytes.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task WhenNoStationFileExists_ShouldThrowFormatExceptionWhenExtracting()
+    {
+        using var temp = new TempDirectory();
+        await File.WriteAllTextAsync(temp.Combine("notes.txt"), "not a station", TestContext.Current.CancellationToken);
+
+        await Should.ThrowAsync<IdfFormatException>(() =>
+            reader.ExtractOfficialFilesAsync(temp.Path, temp.Combine("out"), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task WhenExtractingPathDoesNotExist_ShouldThrowFileNotFound()
+    {
+        using var temp = new TempDirectory();
+
+        await Should.ThrowAsync<FileNotFoundException>(() =>
+            reader.ExtractOfficialFilesAsync("does-not-exist.zip", temp.Combine("out"), TestContext.Current.CancellationToken));
+    }
+
     private async Task<List<IdfStation>> ReadAllAsync(string path)
     {
         var stations = new List<IdfStation>();

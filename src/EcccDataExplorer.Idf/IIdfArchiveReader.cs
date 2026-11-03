@@ -20,6 +20,18 @@ public interface IIdfArchiveReader
     /// </summary>
     /// <exception cref="FileNotFoundException">Nothing exists at <paramref name="path"/>.</exception>
     Task<AggregateTables> ReadAggregateTablesAsync(string path, CancellationToken ct = default);
+
+    /// <summary>
+    /// Unpacks every file of the release, byte for byte, into a layout fit for static hosting:
+    /// <c>v{release}/stations/{climateId}/{original file name}</c> for each station's text, PDF and PNG
+    /// files, and <c>v{release}/release/{original file name}</c> for the release notes, change log and
+    /// flat tables. Nested zips are opened; nothing is renamed or re-encoded.
+    /// </summary>
+    /// <param name="path">The ECCC download: the bundle zip, a province zip, or a folder holding them.</param>
+    /// <param name="outputDirectory">Created if missing. Existing files with the same names are replaced.</param>
+    /// <exception cref="FileNotFoundException">Nothing exists at <paramref name="path"/>.</exception>
+    /// <exception cref="IdfFormatException">No station file was found, so the release cannot be named.</exception>
+    Task<OfficialFilesResult> ExtractOfficialFilesAsync(string path, string outputDirectory, CancellationToken ct = default);
 }
 
 /// <summary>Raw text of the flat all-station tables from the ECCC "Additional" zip.</summary>
@@ -28,3 +40,11 @@ public sealed record AggregateTables(
     string? ReturnPeriodRates,
     string? ReturnPeriodConfidence,
     string? StationLog);
+
+/// <summary>What <see cref="IIdfArchiveReader.ExtractOfficialFilesAsync"/> wrote.</summary>
+/// <param name="Release">Release number, e.g. "3.40".</param>
+/// <param name="Stations">Distinct stations that have files.</param>
+/// <param name="StationFiles">Files under <c>stations/</c>.</param>
+/// <param name="ReleaseFiles">Files under <c>release/</c>.</param>
+/// <param name="Bytes">Total size written.</param>
+public sealed record OfficialFilesResult(string Release, int Stations, int StationFiles, int ReleaseFiles, long Bytes);

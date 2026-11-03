@@ -183,4 +183,20 @@ public class IdfStationParserTests
 
         station.ReleaseVersion.ShouldBeNull();
     }
+
+    [Fact]
+    public void WhenFileNameIsEccc_ShouldExposeTheFileStemWithoutExtension()
+    {
+        var station = TestData.Parse(TestData.Charlottetown);
+
+        station.OfficialFileStem.ShouldBe("idf_v3-40_2025_12_5_830_PE_8300301_CHARLOTTETOWN_A");
+    }
+
+    [Fact]
+    public void WhenFileNameIsNotEccc_ShouldLeaveTheFileStemNull()
+    {
+        var station = parser.Parse(TestData.ReadText(TestData.Charlottetown), "charlottetown.txt");
+
+        station.OfficialFileStem.ShouldBeNull();
+    }
 }

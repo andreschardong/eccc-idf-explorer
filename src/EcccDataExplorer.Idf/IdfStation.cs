@@ -41,6 +41,13 @@ public sealed record IdfStation
     /// <summary>Release number taken from the file name (<c>idf_v3-40_...</c> gives "3.40"), when present.</summary>
     public string? ReleaseVersion { get; init; }
 
+    /// <summary>
+    /// The station file's name without its extension, for example
+    /// <c>idf_v3-40_2025_12_5_830_PE_8300301_CHARLOTTETOWN_A</c>. ECCC names the station's PDF and PNG plots
+    /// from it by adding <c>_qq</c>, <c>_r</c> or <c>_t</c> and an extension. Null when the file name is not ECCC's.
+    /// </summary>
+    public string? OfficialFileStem { get; init; }
+
     /// <summary>Rainfall durations in minutes, in column order (5, 10, 15, 30, 60, ...).</summary>
     public required IReadOnlyList<int> DurationsMinutes { get; init; }
 

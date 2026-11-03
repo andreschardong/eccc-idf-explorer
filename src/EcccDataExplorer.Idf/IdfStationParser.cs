@@ -50,6 +50,7 @@ public sealed partial class IdfStationParser : IIdfStationParser
             Method = header.Method,
             ProcessingDate = header.ProcessingDate,
             ReleaseVersion = ReleaseFromFileName(sourceName),
+            OfficialFileStem = StemRegex().Match(sourceName) is { Success: true } stem ? stem.Groups["stem"].Value : null,
             DurationsMinutes = durations,
             ReturnPeriodsYears = periods,
             AnnualMaxima = annualMaxima,
@@ -397,6 +398,9 @@ public sealed partial class IdfStationParser : IIdfStationParser
 
     [GeneratedRegex(@"idf_v(?<major>\d+)-(?<minor>\d+)_")]
     private static partial Regex ReleaseRegex();
+
+    [GeneratedRegex(@"^(?<stem>idf_v\d+-\d+_\d{4}_\d{1,2}_\d{1,2}_\d{3}_[A-Z]{2}_[0-9A-Z]{7}_.+)\.txt$", RegexOptions.IgnoreCase)]
+    private static partial Regex StemRegex();
 
     [GeneratedRegex(@"\d+")]
     private static partial Regex IntegerRegex();

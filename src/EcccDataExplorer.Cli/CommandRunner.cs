@@ -20,6 +20,7 @@ public sealed class CommandRunner(
         Usage:
           eccc-idf build-site-data <input> <output-dir> [--skip-verify]
           eccc-idf verify <input>
+          eccc-idf extract-official-files <input> <output-dir>
 
         <input> is the ECCC download: the full bundle zip (idf_v3-40_2025-12-5.zip), one province
         zip, or a folder holding either. The full bundle is needed for the cross-check, because the
@@ -29,6 +30,11 @@ public sealed class CommandRunner(
                          dataset.json, stations.json and stations/{id}.json into <output-dir>.
         verify           parses and cross-checks only; writes nothing.
         --skip-verify    build without the cross-check (use only for a partial download).
+        extract-official-files
+                         unpacks every file of the release, unchanged, into
+                         <output-dir>/v{release}/stations/{climateId}/ (text, PDF and PNG per station)
+                         and <output-dir>/v{release}/release/ (notes, change log, flat tables),
+                         ready to host on any static file host.
         """;
 
     public async Task<int> RunAsync(string[] args, CancellationToken ct = default)
@@ -48,11 +54,20 @@ public sealed class CommandRunner(
                 return await BuildAsync(input, outputDirectory, skipVerify, ct);
             case ["verify", var input]:
                 return await VerifyAsync(input, ct);
+            case ["extract-official-files", var input, var outputDirectory]:
+                return await ExtractAsync(input, outputDirectory, ct);
             default:
                 await error.WriteLineAsync("Unrecognised arguments.");
                 await error.WriteLineAsync(Usage);
                 return 2;
         }
+    }
+
+    private async Task<int> ExtractAsync(string input, string outputDirectory, CancellationToken ct)
+    {
+        var result = await reader.ExtractOfficialFilesAsync(input, outputDirectory, ct);
+        await output.WriteLineAsync($"Unpacked release {result.Release}: {result.StationFiles:N0} files for {result.Stations} stations and {result.ReleaseFiles} release-level files ({result.Bytes / 1_000_000.0:N1} MB) into {Path.GetFullPath(outputDirectory)}");
+        return 0;
     }
 
     private async Task<int> VerifyAsync(string input, CancellationToken ct)
