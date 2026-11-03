@@ -355,15 +355,16 @@ test.describe('about, the author and the IDF_CC tool', () => {
     await expect(page.getByRole('button', { name: 'About the data' })).toBeFocused();
   });
 
-  test('About the author opens the author, the paper and the links, and nothing about the data', async ({ page }) => {
+  test('About the author opens the introduction and the links, and nothing about the data or the paper', async ({ page }) => {
     await openExplorer(page);
     await page.getByRole('button', { name: 'About the author' }).click();
     const dialog = page.getByRole('dialog', { name: 'About the author' });
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('heading', { level: 3 })).toHaveText(['The paper behind the IDF_CC tool', 'Elsewhere']);
+    await expect(dialog.getByRole('heading', { level: 3 })).toHaveText(['Elsewhere']);
     await expect(dialog).toContainText('Andre Schardong is a senior software engineer');
     await expect(dialog.getByRole('link', { name: 'andreschardong.com' })).toHaveAttribute('href', 'https://andreschardong.com');
-    await expect(dialog.getByRole('link', { name: /doi\.org\/10\.3390\/w12051243/ })).toBeVisible();
+    await expect(dialog).not.toContainText('paper');
+    await expect(dialog.getByRole('link', { name: /doi\.org/ })).toHaveCount(0);
     await expect(dialog).not.toContainText('751 stations');
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
