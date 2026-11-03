@@ -312,6 +312,30 @@ describe('station panel', () => {
       expect(ui.visiblePanel()?.querySelectorAll('path.band')).toHaveLength(1);
     });
 
+    it('shows ECCC\'s fitted equations, and a switch that takes the lines off the chart', async () => {
+      const ui = mount();
+      await ui.panel.show('8300301');
+      const curves = ui.visiblePanel() as HTMLElement;
+      const toggle = curves.querySelector('#fit-toggle') as HTMLInputElement;
+      expect(toggle.checked).toBe(true);
+      expect(curves.querySelectorAll('path.fit')).toHaveLength(7);
+      toggle.checked = false;
+      toggle.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(curves.querySelectorAll('path.fit')).toHaveLength(0);
+    });
+
+    it('lists every equation in words, so the lines have a text alternative', async () => {
+      const ui = mount();
+      await ui.panel.show('8300301');
+      const list = ui.visiblePanel()?.querySelector('details.equations') as HTMLElement;
+      expect(text(list.querySelector('summary'))).toBe("ECCC's fitted equations");
+      const items = [...list.querySelectorAll('li')].map(text);
+      expect(items).toHaveLength(7);
+      expect(items[0]).toBe('2-yearR = 17.4 × T^−0.551');
+      expect(items[5]).toBe('100-yearR = 40.1 × T^−0.578');
+      expect(text(list.querySelector('p'))).toContain('depth in mm is R × T');
+    });
+
     it('points to the IDF_CC tool for climate-change-adjusted curves', async () => {
       const ui = mount();
       await ui.panel.show('8300301');

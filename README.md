@@ -16,11 +16,13 @@ storms, 2- to 200-year return periods.
 
 ## What you can do
 
-- **Find a station** on a map that groups nearby stations into numbered circles and separates them as you
-  zoom in. Colour the stations by years of record or by the 100-year, 1-hour or 24-hour design depth, or
+- **Find a station** on a map that groups nearby stations into numbered circles, coloured by group size, and
+  separates them as you zoom in. Colour the stations by years of record or by the 100-year, 1-hour or 24-hour design depth, or
   search by name, climate ID or province. Station links are shareable (`#/station/6158355/curves`).
-- **Read the curves.** Log-log IDF curves for all return periods, switchable between intensity
-  (mm/h) and depth (mm), with an optional 95 % confidence band, a tooltip and keyboard navigation.
+- **Read the curves.** ECCC's published values are plotted as dots, never joined, and ECCC's fitted equation
+  (`R = A × T^B`, from Table 3 of each station file) is drawn as a line for every return period, as on ECCC's own
+  graphs. Switch between intensity (mm/h) and depth (mm), turn the lines off, add a 95 % confidence band, and read
+  every equation in words. A tooltip and the arrow keys give the values by duration.
 - **See the underlying numbers.** Depth, intensity with confidence limits, and the `R = A · T^B` fit
   as tables, plus every year's annual maximum against the 2-, 10- and 100-year depths.
 - **Interpolate.** A calculator evaluates the fit for any duration from 5 minutes to 24 hours and
