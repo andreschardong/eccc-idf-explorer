@@ -1,8 +1,6 @@
 // The two About dialogs: one about the data, one about the author. Each is opened from its own menu item.
 import { h } from './dom';
-import {
-  AUTHOR, ECCC_DATASETS_URL, IDF_CC_PAPER, IDF_CC_URL,
-} from './links';
+import { AUTHOR, ECCC_DATASETS_URL, IDF_CC_URL } from './links';
 import type { DatasetInfo } from './types';
 
 const link = (href: string, text: string): HTMLAnchorElement => h('a', { href, rel: 'noopener' }, text);
@@ -30,15 +28,7 @@ function relatedTool(): HTMLElement {
 
 function authorIntroduction(): HTMLElement {
   return h('section', { class: 'about-section' },
-    h('p', {}, `${AUTHOR.name} is a senior software engineer and a licensed professional engineer (P.Eng.). He builds engineering software for hydrology, flood risk and climate change adaptation, and is the lead author of the paper that describes the IDF_CC tool:`));
-}
-
-function authorPaper(): HTMLElement {
-  const paper = IDF_CC_PAPER;
-  return h('section', { class: 'about-section' },
-    h('h3', {}, 'The paper behind the IDF_CC tool'),
-    h('p', { class: 'citation' }, `${paper.authors} (${paper.year}). ${paper.title}. `,
-      h('cite', {}, paper.journal), ` ${paper.volume}(${paper.issue}), ${paper.article}. `, link(paper.url, paper.url.replace('https://', ''))));
+    h('p', {}, `${AUTHOR.name} is a senior software engineer and a licensed professional engineer (P.Eng.). He builds engineering software for hydrology, flood risk and climate change adaptation.`));
 }
 
 function authorLinks(): HTMLElement {
@@ -57,5 +47,5 @@ export function buildAboutData(dataset: DatasetInfo): HTMLElement[] {
 
 /** Content of the "About the author" dialog. */
 export function buildAboutAuthor(): HTMLElement[] {
-  return [authorIntroduction(), authorPaper(), authorLinks()];
+  return [authorIntroduction(), authorLinks()];
 }

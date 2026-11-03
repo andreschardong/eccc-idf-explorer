@@ -62,29 +62,27 @@ describe('About the data', () => {
 describe('About the author', () => {
   const sections = buildAboutAuthor();
 
-  it('has an introduction, the paper and the links', () => {
-    expect(sections).toHaveLength(3);
-    expect(sections.map((s) => text(s.querySelector('h3')))).toEqual(['', 'The paper behind the IDF_CC tool', 'Elsewhere']);
+  it('has an introduction and the links', () => {
+    expect(sections).toHaveLength(2);
+    expect(sections.map((s) => text(s.querySelector('h3')))).toEqual(['', 'Elsewhere']);
   });
 
   it('introduces the author with exactly these professional facts', () => {
     expect(text(sections[0]?.querySelector('p') ?? null)).toBe(
       'Andre Schardong is a senior software engineer and a licensed professional engineer (P.Eng.). '
-      + 'He builds engineering software for hydrology, flood risk and climate change adaptation, '
-      + 'and is the lead author of the paper that describes the IDF_CC tool:',
+      + 'He builds engineering software for hydrology, flood risk and climate change adaptation.',
     );
   });
 
-  it('cites the IDF_CC paper in full with a DOI link', () => {
-    const citation = text(sections[1]?.querySelector('.citation') ?? null);
-    expect(citation).toContain('Schardong, A., Simonovic, S. P., Gaur, A. and Sandink, D. (2020)');
-    expect(citation).toContain('Web-Based Tool for the Development of Intensity Duration Frequency Curves');
-    expect(citation).toContain('Water 12(5), 1243');
-    expect(sections[1]?.querySelector<HTMLAnchorElement>('.citation a')?.href).toBe('https://doi.org/10.3390/w12051243');
+  it('does not mention the IDF_CC paper', () => {
+    const body = sections.map(text).join(' ');
+    expect(body).not.toContain('paper');
+    expect(body).not.toContain('doi.org');
+    expect(body).not.toContain('Simonovic');
   });
 
   it("links to the author's own website, GitHub and LinkedIn", () => {
-    expect(links(sections[2])).toMatchObject({
+    expect(links(sections[1])).toMatchObject({
       'andreschardong.com': 'https://andreschardong.com/',
       GitHub: 'https://github.com/andreschardong',
       LinkedIn: 'https://www.linkedin.com/in/andreschardong',
