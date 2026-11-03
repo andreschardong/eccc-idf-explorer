@@ -5,6 +5,8 @@ const PORT = 4173;
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
+  // Each worker is a browser drawing the map in software, which is heavy; two keep a laptop usable.
+  workers: process.env['CI'] ? 4 : 2,
   forbidOnly: Boolean(process.env['CI']),
   retries: process.env['CI'] ? 1 : 0,
   reporter: process.env['CI'] ? [['list'], ['html', { open: 'never' }]] : 'list',

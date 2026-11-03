@@ -47,11 +47,13 @@ describe('About dialog content', () => {
     expect(text(sections[1] ?? null)).toContain('climate change');
   });
 
-  it('introduces the author in plain, professional terms and nothing more', () => {
-    const body = text(sections[2] ?? null);
-    expect(body).toContain('Andre Schardong is a senior software engineer and a licensed professional engineer (P.Eng.)');
-    expect(body).toContain('hydrology, flood risk and climate change adaptation');
-    expect(body).not.toMatch(/citizen|born|lives|living|moved|moving|relocat|phone|address/i);
+  it('introduces the author with exactly these professional facts', () => {
+    const intro = text(sections[2]?.querySelectorAll('p')[0] ?? null);
+    expect(intro).toBe(
+      'Andre Schardong is a senior software engineer and a licensed professional engineer (P.Eng.). '
+      + 'He builds engineering software for hydrology, flood risk and climate change adaptation, '
+      + 'and is the lead author of the paper that describes the IDF_CC tool:',
+    );
   });
 
   it('cites the IDF_CC paper in full with a DOI link', () => {
