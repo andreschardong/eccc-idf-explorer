@@ -16,7 +16,7 @@ function aboutTheData(dataset: DatasetInfo): HTMLElement {
       h('li', {}, "Every value shown here was cross-checked against ECCC's own flat all-station tables when the data was built.")),
     h('p', {}, 'Data: ', link(ECCC_DATASETS_URL, 'ECCC Engineering Climate Datasets'),
       ', used under the ', link(dataset.licenceUrl, dataset.licence), '. Base map: ', link('https://openfreemap.org', 'OpenFreeMap'),
-      ', © ', link('https://www.openmaptiles.org/', 'OpenMapTiles'), ', data © ', link('https://www.openstreetmap.org/copyright', 'OpenStreetMap'), ' contributors. Satellite view: imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community.'));
+      ', © ', link('https://www.openmaptiles.org/', 'OpenMapTiles'), ', data © ', link('https://www.openstreetmap.org/copyright', 'OpenStreetMap'), ' contributors.'));
 }
 
 function relatedTool(): HTMLElement {

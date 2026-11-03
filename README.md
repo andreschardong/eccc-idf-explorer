@@ -20,7 +20,7 @@ storms, 2- to 200-year return periods.
   separates them as you zoom in. Colour the stations by years of record or by the 100-year, 1-hour or 24-hour design depth, or
   search by name, climate ID or province. Station links are shareable (`#/station/6158355/curves`).
 - **Choose the base map.** Light mode offers light grey, streets and bright maps; dark mode offers slate and
-  charcoal; both offer satellite imagery. Each theme remembers its own choice.
+  charcoal. Each theme remembers its own choice.
 - **Read the curves.** ECCC's published values are plotted as dots, never joined, and ECCC's fitted equation
   (`R = A × T^B`, from Table 3 of each station file) is drawn as a line for every return period, as on ECCC's own
   graphs. Switch between intensity (mm/h) and depth (mm), turn the lines off, add a 95 % confidence band, and read
@@ -153,14 +153,10 @@ locations, use the [IDF_CC tool](https://www.idf-cc-uwo.ca), developed at Wester
 ## Credits and licence
 
 - Code: [MIT](LICENSE) © Andre Schardong, a senior software engineer and licensed professional engineer (P.Eng.)
-  who builds engineering software for hydrology, flood risk and climate change adaptation, and the lead author of
-  the paper that describes the IDF_CC tool: Schardong, A., Simonovic, S. P., Gaur, A. and Sandink, D. (2020),
-  [Web-Based Tool for the Development of Intensity Duration Frequency Curves under Changing Climate at Gauged and
-  Ungauged Locations](https://doi.org/10.3390/w12051243), *Water* 12(5), 1243.
+  who builds engineering software for hydrology, flood risk and climate change adaptation.
 - Data: © Environment and Climate Change Canada, used under the
   [Open Government Licence – Canada](https://open.canada.ca/en/open-government-licence-canada).
-- Base maps: [OpenFreeMap](https://openfreemap.org), © OpenMapTiles, data © OpenStreetMap contributors; satellite
-  view: imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community.
+- Base maps: [OpenFreeMap](https://openfreemap.org), © OpenMapTiles, data © OpenStreetMap contributors.
 - Third-party components and fonts: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -29,6 +29,13 @@ describe('the remembered basemap', () => {
     expect(chosenBasemap('light').id).toBe('light');
   });
 
+  it('falls back to the default for a choice that has since been removed, such as the old satellite map', () => {
+    localStorage.setItem('basemap-light', 'satellite');
+    localStorage.setItem('basemap-dark', 'satellite');
+    expect(chosenBasemap('light').id).toBe('light');
+    expect(chosenBasemap('dark').id).toBe('slate');
+  });
+
   it('keeps working, on the default, when storage is blocked', () => {
     const blocked = (): never => { throw new Error('blocked'); };
     vi.stubGlobal('localStorage', { getItem: blocked, setItem: blocked });
