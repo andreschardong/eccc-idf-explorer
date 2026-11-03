@@ -16,9 +16,9 @@ storms, 2- to 200-year return periods.
 
 ## What you can do
 
-- **Find a station** on a map coloured by years of record or by the 100-year, 1-hour or 24-hour
-  design depth, or search by name, climate ID or province. Station links are shareable
-  (`#/station/6158355/curves`).
+- **Find a station** on a map that groups nearby stations into numbered circles and separates them as you
+  zoom in. Colour the stations by years of record or by the 100-year, 1-hour or 24-hour design depth, or
+  search by name, climate ID or province. Station links are shareable (`#/station/6158355/curves`).
 - **Read the curves.** Log-log IDF curves for all return periods, switchable between intensity
   (mm/h) and depth (mm), with an optional 95 % confidence band, a tooltip and keyboard navigation.
 - **See the underlying numbers.** Depth, intensity with confidence limits, and the `R = A · T^B` fit
@@ -26,9 +26,28 @@ storms, 2- to 200-year return periods.
 - **Interpolate.** A calculator evaluates the fit for any duration from 5 minutes to 24 hours and
   shows ECCC's published value next to it where one exists.
 - **Take the data with you.** CSV and JSON download for every station.
+- **Open ECCC's own files.** Each station's official IDF graph, quantile-quantile plot, return-level plot, trend
+  plot (PDF and PNG) and station text file, unchanged, on the Official tab. See [Official files](#official-files).
 
 It works in light and dark, on phones, with a screen reader (the tables are the text alternative to
 the charts), and with reduced motion.
+
+## Official files
+
+ECCC's own PDF, PNG and text files are 770 MB (6,759 files, nine per station), so they are **not in git**. They
+are unpacked and served as static assets by a Cloudflare Worker, at
+`https://eccc-idf-files.andreschardong.workers.dev/v3.40/stations/<climate ID>/`, under ECCC's own file names.
+The address of each station's files is built from one field in its JSON (`officialFileStem`); the host is set in
+[`site/src/config.ts`](site/src/config.ts).
+
+```sh
+node scripts/publish-official-files.mjs               # unpack release 3.40 and deploy it (needs: npx wrangler login)
+node scripts/publish-official-files.mjs --no-deploy   # just prepare official-files/ to look at it
+```
+
+The script runs `eccc-idf extract-official-files`, adds a landing page and cache headers, and deploys with
+[Wrangler](https://developers.cloudflare.com/workers/wrangler/). A deployment is a snapshot of the whole folder, so
+keep `official-files/` between releases: unpacking release 3.41 next to `v3.40` publishes both.
 
 ## Run it
 
@@ -72,7 +91,8 @@ ECCC zip ──► EcccDataExplorer.Idf ──► cross-check ──► site/pub
 | `src/EcccDataExplorer.Idf` | .NET 10 library: reads the ECCC download, parses station files, cross-checks, writes the site JSON |
 | `src/EcccDataExplorer.Cli` | The `eccc-idf` command (`build-site-data`, `verify`) |
 | `tests/EcccDataExplorer.Idf.Tests` | xUnit v3 tests, with real ECCC station files as fixtures |
-| `site` | The web app: TypeScript (strict), Vite, MapLibre GL, hand-written SVG charts, Vitest |
+| `site` | The web app: TypeScript (strict), Vite, MapLibre GL, hand-written SVG charts, Vitest and Playwright tests |
+| `scripts` | `update-data.mjs` (rebuild the JSON) and `publish-official-files.mjs` (host ECCC's own files on Cloudflare) |
 | `docs/data-format.md` | The ECCC file format and the quirks found in it |
 
 There is no server and no database. The site fetches `stations.json` once and one small JSON file
@@ -81,13 +101,24 @@ per station on demand.
 ## Test
 
 ```sh
-dotnet test --solution ECCCDataExplorer.slnx
-cd site && npm test && npm run typecheck
+dotnet test --solution ECCCDataExplorer.slnx          # 60 tests: parser, exporter, cross-check, CLI
+cd site
+npm test                                              # 137 unit and component tests (Vitest, happy-dom)
+npm run typecheck
+npx playwright install chromium && npm run test:e2e   # 40 browser tests against the production build
 ```
 
-The parser tests run against real station files, including the awkward ones: stations with
-durations ECCC did not analyse, statistics that print as `*****` or `NaN`, and a "warning" block
-inside a data table. See [docs/data-format.md](docs/data-format.md).
+- The **parser tests** run against real station files, including the awkward ones: stations with durations ECCC
+  did not analyse, statistics that print as `*****` or `NaN`, and a "warning" block inside a data table. See
+  [docs/data-format.md](docs/data-format.md).
+- The **component tests** run the real UI code (tables, calculator, search, both charts, the Official tab, the About
+  dialog and the whole station panel) against real station data.
+- The **browser tests** drive the built site in Chromium with the basemap and files host stubbed, so they never
+  depend on the internet. They cover search, grouping, tabs, keyboard use, downloads, deep links, the back button,
+  dark mode and a phone layout, and they fail on any console error. They also run an
+  [axe-core](https://github.com/dequelabs/axe-core) accessibility scan (WCAG 2.2 A and AA) on every view.
+
+CI runs all three, and the site is deployed only when they pass.
 
 ## Using the numbers
 
@@ -96,9 +127,16 @@ unchanged. Before using any value for design, read ECCC's own guidance on using 
 (*Best Practices for Using IDF Curves*, published beside the download), which covers short records,
 extrapolation and climate change, and cite the official release.
 
+ECCC's curves describe the climate of the past. To update IDF curves for climate change, at gauged and ungauged
+locations, use the [IDF_CC tool](https://www.idf-cc-uwo.ca), developed at Western University.
+
 ## Credits and licence
 
-- Code: [MIT](LICENSE) © Andre Schardong.
+- Code: [MIT](LICENSE) © Andre Schardong, a senior software engineer and licensed professional engineer (P.Eng.)
+  who builds engineering software for hydrology, flood risk and climate change adaptation, and the lead author of
+  the paper that describes the IDF_CC tool: Schardong, A., Simonovic, S. P., Gaur, A. and Sandink, D. (2020),
+  [Web-Based Tool for the Development of Intensity Duration Frequency Curves under Changing Climate at Gauged and
+  Ungauged Locations](https://doi.org/10.3390/w12051243), *Water* 12(5), 1243.
 - Data: © Environment and Climate Change Canada, used under the
   [Open Government Licence – Canada](https://open.canada.ca/en/open-government-licence-canada).
 - Base map: [OpenFreeMap](https://openfreemap.org), © OpenMapTiles, data © OpenStreetMap contributors.

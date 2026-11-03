@@ -71,6 +71,24 @@ rounding (a difference of at most 0.05). For release 3.40 that is **751 stations
 in agreement**. The log's name column is 40 characters wide and cuts longer names off; the check
 accounts for that.
 
+## ECCC's own files, unpacked
+
+Each station has nine files: the text file, and a PDF and a PNG of each of four plots, named from the text file's
+name (the *stem*) by adding a suffix:
+
+| Suffix | Plot |
+|---|---|
+| none | The IDF graph: curves for each return period, 5 minutes to 24 hours |
+| `_qq` | Quantile-quantile plot: each annual maximum against the value the fitted Gumbel distribution predicts |
+| `_r` | Return-level plot: depth against return period for each duration, with the 95 % confidence limits |
+| `_t` | Trend plot: each annual maximum through time, with ECCC's trend result and slope |
+
+`eccc-idf extract-official-files <input> <output-dir>` unpacks the whole release, byte for byte, into
+`v{release}/stations/{climateId}/{file}` and `v{release}/release/{file}` (notes, change log, flat tables). For
+release 3.40 that is 6,759 station files and 11 release-level files, 768 MB, largest file 2.5 MB. The site links to
+them through `officialFileStem` in each station's JSON, and the data build was checked to confirm that all
+9 × 751 targets exist.
+
 ## What `build-site-data` writes
 
 ```

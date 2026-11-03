@@ -24,3 +24,10 @@ Thumbs.db
 # Site build output and dependencies
 site/dist/
 site/node_modules/
+
+# Unpacked ECCC files for hosting on Cloudflare Pages (693 MB, never committed)
+/official-files/
+site/test-results/
+site/playwright-report/
+site/blob-report/
+.wrangler/

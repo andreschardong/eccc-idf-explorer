@@ -1,0 +1,12 @@
+// Cloudflare Worker that serves ECCC's own PDF, PNG and text files as static assets, outside git.
+// Published at https://eccc-idf-files.andreschardong.workers.dev
+// Deploy with: node scripts/publish-official-files.mjs
+{
+  "name": "eccc-idf-files",
+  "compatibility_date": "2026-11-03",
+  "workers_dev": true,
+  "assets": {
+    // Written by `eccc-idf extract-official-files`; git ignores it.
+    "directory": "../../official-files"
+  }
+}
