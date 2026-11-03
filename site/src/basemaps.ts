@@ -1,6 +1,6 @@
-// The basemaps a viewer can choose from. Each is offered only in the colour theme it suits, so the station circles,
-// whose colours follow the theme, stay readable; satellite imagery suits both. The first of each theme is its default.
-import type { StyleSpecification } from 'maplibre-gl';
+// The basemaps a viewer can choose from. All are OpenFreeMap styles: free, no API key, no account. Each is offered only
+// in the colour theme it suits, so the station circles, whose colours follow the theme, stay readable. The first of
+// each theme is its default.
 import type { Theme } from './theme';
 
 export interface Basemap {
@@ -8,40 +8,13 @@ export interface Basemap {
   /** Short name for the selector. */
   label: string;
   themes: readonly Theme[];
-  /** A style address, or a style defined here. */
-  style: string | StyleSpecification;
+  /** The style's address. */
+  style: string;
   /** True for OpenFreeMap's near-black style, which is lifted to a readable slate as it loads (see map-style.ts). */
   lift?: boolean;
 }
 
 const OPENFREEMAP = 'https://tiles.openfreemap.org/styles';
-const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
-
-/** Aerial imagery with Esri's place and boundary names on top. Fonts come from OpenFreeMap, like the other styles'. */
-const SATELLITE: StyleSpecification = {
-  version: 8,
-  name: 'Satellite',
-  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
-  sources: {
-    imagery: {
-      type: 'raster',
-      tiles: [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: 'Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community',
-    },
-    places: {
-      type: 'raster',
-      tiles: [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`],
-      tileSize: 256,
-      maxzoom: 19,
-    },
-  },
-  layers: [
-    { id: 'imagery', type: 'raster', source: 'imagery' },
-    { id: 'places', type: 'raster', source: 'places' },
-  ],
-};
 
 export const BASEMAPS: readonly Basemap[] = [
   { id: 'light', label: 'Light grey', themes: ['light'], style: `${OPENFREEMAP}/positron` },
@@ -49,7 +22,6 @@ export const BASEMAPS: readonly Basemap[] = [
   { id: 'bright', label: 'Bright', themes: ['light'], style: `${OPENFREEMAP}/bright` },
   { id: 'slate', label: 'Slate', themes: ['dark'], style: `${OPENFREEMAP}/fiord` },
   { id: 'charcoal', label: 'Charcoal', themes: ['dark'], style: `${OPENFREEMAP}/dark`, lift: true },
-  { id: 'satellite', label: 'Satellite', themes: ['light', 'dark'], style: SATELLITE },
 ];
 
 /** The basemaps offered in a theme, in the order they are listed. */
@@ -67,11 +39,6 @@ export function defaultBasemap(theme: Theme): Basemap {
 /** The basemap with this id if the theme offers it, otherwise the theme's default (an old or unknown saved choice). */
 export function resolveBasemap(theme: Theme, id: string | null | undefined): Basemap {
   return basemapsFor(theme).find((basemap) => basemap.id === id) ?? defaultBasemap(theme);
-}
-
-/** What to give MapLibre: the address as it is, or a copy of a style defined here so the original is never shared. */
-export function styleOf(basemap: Basemap): string | StyleSpecification {
-  return typeof basemap.style === 'string' ? basemap.style : structuredClone(basemap.style);
 }
 
 const storageKey = (theme: Theme): string => `basemap-${theme}`;

@@ -43,8 +43,8 @@ describe('About the data', () => {
     expect(Object.keys(found)).toContain('OpenStreetMap');
   });
 
-  it('credits the satellite imagery', () => {
-    expect(text(sections[0] ?? null)).toContain('Satellite view: imagery © Esri, Maxar, Earthstar Geographics');
+  it('credits only the map sources that are used', () => {
+    expect(text(sections[0] ?? null)).not.toContain('Esri');
   });
 
   it('points to the IDF_CC tool', () => {

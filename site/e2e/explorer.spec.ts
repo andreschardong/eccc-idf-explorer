@@ -403,7 +403,7 @@ test.describe('appearance', () => {
     await page.emulateMedia({ colorScheme: 'light' });
     await openExplorer(page);
     await expect(page.getByLabel('Basemap')).toHaveValue('light');
-    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Light grey', 'Streets', 'Bright', 'Satellite']);
+    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Light grey', 'Streets', 'Bright']);
     await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'light');
   });
 
@@ -411,7 +411,7 @@ test.describe('appearance', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await openExplorer(page);
     await expect(page.getByLabel('Basemap')).toHaveValue('slate');
-    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Slate', 'Charcoal', 'Satellite']);
+    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Slate', 'Charcoal']);
     await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'slate');
   });
 
@@ -420,17 +420,17 @@ test.describe('appearance', () => {
     await openExplorer(page);
     const before = await mapCounts(page);
     expect(before.groups + before.singles).toBeGreaterThan(0);
-    for (const choice of ['charcoal', 'satellite', 'slate']) {
+    for (const choice of ['charcoal', 'slate']) {
       await page.getByLabel('Basemap').selectOption(choice);
       await expect(page.locator('#map')).toHaveAttribute('data-basemap', choice);
       // The new style drops our layers and puts them back; the counts come from what is drawn once the map is idle.
       await expect.poll(async () => (await mapCounts(page)).groups, { timeout: 20_000 }).toBe(before.groups);
     }
-    await page.getByLabel('Basemap').selectOption('satellite');
+    await page.getByLabel('Basemap').selectOption('charcoal');
     await page.reload();
     await expect(page.locator('#map')).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
-    await expect(page.getByLabel('Basemap')).toHaveValue('satellite');
-    await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'satellite');
+    await expect(page.getByLabel('Basemap')).toHaveValue('charcoal');
+    await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'charcoal');
   });
 
   test('switching theme lists the basemaps of the new theme, each theme remembering its own choice', async ({ page }) => {
@@ -439,7 +439,7 @@ test.describe('appearance', () => {
     await page.getByLabel('Basemap').selectOption('streets');
     await page.getByRole('button', { name: 'Switch colour theme' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Slate', 'Charcoal', 'Satellite']);
+    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Slate', 'Charcoal']);
     await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'slate');
     await page.getByLabel('Basemap').selectOption('charcoal');
     await page.getByRole('button', { name: 'Switch colour theme' }).click();

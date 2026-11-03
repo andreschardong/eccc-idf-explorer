@@ -1,5 +1,5 @@
 // MapLibre GL map: one GPU-drawn circle per station, coloured by record length or 100-year design depth.
-// The basemaps (src/basemaps.ts) are free and need no API key: OpenFreeMap vector styles, and Esri satellite imagery.
+// The basemaps (src/basemaps.ts) are OpenFreeMap vector styles: free, no API key, no account.
 // The viewer picks one; each colour theme offers its own and remembers the choice.
 import type { FeatureCollection, Point } from 'geojson';
 import * as maplibregl from 'maplibre-gl';
@@ -13,7 +13,7 @@ import {
 import { textOn } from './contrast';
 import { prettyName } from './format';
 import {
-  chosenBasemap, resolveBasemap, saveBasemapId, styleOf, type Basemap,
+  chosenBasemap, resolveBasemap, saveBasemapId, type Basemap,
 } from './basemaps';
 import { brightenDarkStyle } from './map-style';
 import { cssVar, currentTheme } from './theme';
@@ -119,7 +119,7 @@ export function createMap(
 
   const map = new maplibregl.Map({
     container: element,
-    style: styleOf(state.basemap),
+    style: state.basemap.style,
     transformStyle,
     bounds: CANADA_BOUNDS,
     fitBoundsOptions: { padding: 24 },
@@ -280,7 +280,7 @@ export function createMap(
       return;
     }
     // A new style drops our source and layers (no diffing, so none are half kept); `style.load` puts them back.
-    map.setStyle(styleOf(next), { diff: false, transformStyle });
+    map.setStyle(next.style, { diff: false, transformStyle });
   }
 
   element.dataset['basemap'] = state.basemap.id;

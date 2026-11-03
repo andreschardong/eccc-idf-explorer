@@ -27,26 +27,19 @@ value is cross-checked against ECCC's own flat tables when the data is built.
 
 ## Base map
 
-The viewer chooses the base map from a list that depends on the colour theme.
-
-- **Light grey, Streets, Bright, Slate and Charcoal** are [OpenFreeMap](https://openfreemap.org) styles (Positron,
-  Liberty, Bright, Fiord and Dark), served from [OpenMapTiles](https://www.openmaptiles.org/) schema data ©
-  OpenStreetMap contributors ([ODbL](https://www.openstreetmap.org/copyright)). Charcoal is OpenFreeMap's near-black
-  style with its colours lightened in the browser as it loads.
-- **Satellite** is aerial imagery and place names from Esri's ArcGIS Online tile services (World Imagery, and World
-  Boundaries and Places), © Esri, Maxar, Earthstar Geographics and the GIS User Community, used under Esri's terms
-  of use. It is only requested when a visitor picks it.
-
-The attribution is shown on the map and in the About dialog. No API key or account is used.
+The viewer chooses the base map from a list that depends on the colour theme: Light grey, Streets and Bright in
+light mode; Slate and Charcoal in dark mode. All five are [OpenFreeMap](https://openfreemap.org) styles (Positron,
+Liberty, Bright, Fiord and Dark), served from [OpenMapTiles](https://www.openmaptiles.org/) schema data ©
+OpenStreetMap contributors ([ODbL](https://www.openstreetmap.org/copyright)). Charcoal is OpenFreeMap's near-black
+style with its colours lightened in the browser as it loads. The attribution is shown on the map and in the About
+dialog. No API key or account is used.
 
 ## What visitors' browsers contact
 
 The site is static and has no server of its own, no analytics, no cookies and no sign-in. A visitor's browser does
-make requests to other hosts, which see the visitor's IP address as any web server does:
+make requests to two other hosts, which see the visitor's IP address as any web server does:
 
 - **OpenFreeMap** (`tiles.openfreemap.org`) for map tiles, styles and map fonts.
-- **Esri** (`server.arcgisonline.com`) for satellite imagery and place names, only when the Satellite base map is
-  chosen.
 - **Cloudflare** (`eccc-idf-files.andreschardong.workers.dev`) for ECCC's own PDF, PNG and text files, when the
   Files tab is opened or a file is downloaded. The site itself is also served by Cloudflare.
 
