@@ -2,6 +2,7 @@
 import { renderAnnualChart } from './annual-chart';
 import { buildCalculator } from './calculator-ui';
 import { OFFICIAL_FILES_BASE } from './config';
+import { buildFilesPanel } from './files-ui';
 import { IDF_CC_URL } from './links';
 import { loadStation, stationJsonUrl } from './data';
 import { clear, h } from './dom';
@@ -10,18 +11,17 @@ import {
   durationLabel, formatCoordinates, formatValue, prettyName, provinceName, returnPeriodLabel,
 } from './format';
 import { renderIdfChart, type ChartController, type IdfOptions } from './idf-chart';
-import { buildOfficialPanel } from './official-ui';
 import { buildAnnualTable, buildTablesPanel } from './tables';
 import type { DatasetInfo, StationDetail, StationSummary } from './types';
 
-export type TabId = 'curves' | 'tables' | 'annual' | 'calc' | 'official';
+export type TabId = 'curves' | 'tables' | 'annual' | 'calc' | 'files';
 
 export const TABS: readonly { id: TabId; label: string }[] = [
   { id: 'curves', label: 'Curves' },
   { id: 'tables', label: 'Tables' },
   { id: 'annual', label: 'Annual' },
   { id: 'calc', label: 'Calculator' },
-  { id: 'official', label: 'Official' },
+  { id: 'files', label: 'Files' },
 ];
 
 export function isTabId(value: string | undefined): value is TabId {
@@ -156,6 +156,7 @@ export function createStationPanel({
           onclick: () => downloadText(csvFileName(station, dataset.release), stationToCsv(station)),
         }, 'Download CSV'),
         h('a', { class: 'btn', href: stationJsonUrl(station.id), download: `${station.id}.json` }, 'Download JSON'),
+        station.officialFileStem === undefined ? null : h('button', { class: 'btn', type: 'button', onclick: () => openFiles() }, 'Download files'),
         copyButton));
 
     const notices: string[] = [];
@@ -165,8 +166,8 @@ export function createStationPanel({
     const skipped = station.durations.filter((_, d) => !station.sampleYears[d]);
     if (skipped.length) notices.push(`ECCC did not analyse ${listDurations(skipped)} at this station.`);
 
-    // The Official tab needs ECCC's file name, which every station in the data has.
-    const tabs = TABS.filter((t) => t.id !== 'official' || station.officialFileStem !== undefined);
+    // The Files tab needs ECCC's file name, which every station in the data has.
+    const tabs = TABS.filter((t) => t.id !== 'files' || station.officialFileStem !== undefined);
     const built = new Set<TabId>();
     const tablist = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Station views' });
     const tabButtons = tabs.map((t, i) => h('button', {
@@ -190,6 +191,15 @@ export function createStationPanel({
       class: 'tabpanel', role: 'tabpanel', id: `panel-${t.id}`, 'aria-labelledby': `tab-${t.id}`, hidden: true,
     }));
 
+    /** The "Download files" button: show the Files tab, bring it into view and put the keyboard on it. */
+    function openFiles(): void {
+      select('files', true);
+      const index = tabs.findIndex((t) => t.id === 'files');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      panelEls[index]?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      tabButtons[index]?.focus({ preventScroll: true });
+    }
+
     function select(id: TabId, notify: boolean): void {
       tab = id;
       tabs.forEach((t, i) => {
@@ -210,7 +220,7 @@ export function createStationPanel({
       if (id === 'curves') buildCurves(el);
       else if (id === 'tables') el.append(buildTablesPanel(station));
       else if (id === 'annual') buildAnnual(el);
-      else if (id === 'official') el.append(buildOfficialPanel(station, dataset.release, OFFICIAL_FILES_BASE));
+      else if (id === 'files') el.append(buildFilesPanel(station, dataset.release, OFFICIAL_FILES_BASE));
       else el.append(buildCalculator(station));
     }
 

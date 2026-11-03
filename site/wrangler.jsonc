@@ -1,0 +1,11 @@
+// Cloudflare Worker serving the built explorer as static assets, like andreschardong.com does.
+// Published at https://eccc-idf-explorer.andreschardong.workers.dev
+// Deploy with: npm run deploy
+{
+  "name": "eccc-idf-explorer",
+  "compatibility_date": "2026-11-03",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist"
+  }
+}
