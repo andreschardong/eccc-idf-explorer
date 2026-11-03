@@ -1,5 +1,6 @@
 // MapLibre GL map: one GPU-drawn circle per station, coloured by record length or 100-year design depth.
-// The basemap is OpenFreeMap (free vector tiles, no API key); the style flips with the colour theme.
+// The basemaps (src/basemaps.ts) are free and need no API key: OpenFreeMap vector styles, and Esri satellite imagery.
+// The viewer picks one; each colour theme offers its own and remembers the choice.
 import type { FeatureCollection, Point } from 'geojson';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -11,6 +12,9 @@ import {
 } from './binning';
 import { textOn } from './contrast';
 import { prettyName } from './format';
+import {
+  chosenBasemap, resolveBasemap, saveBasemapId, styleOf, type Basemap,
+} from './basemaps';
 import { brightenDarkStyle } from './map-style';
 import { cssVar, currentTheme } from './theme';
 import type { StationSummary } from './types';
@@ -34,6 +38,8 @@ export interface StationMap {
   setMode(mode: ColorMode): void;
   setProvince(code: string): void;
   select(id: string | null, options?: { pan?: boolean }): void;
+  /** The viewer picked a basemap by id; the choice is remembered for the current theme. */
+  setBasemap(id: string): void;
   refreshTheme(): void;
 }
 
@@ -41,11 +47,6 @@ export interface MapHandlers {
   onSelect(id: string): void;
   onLegend(info: LegendInfo): void;
 }
-
-const STYLE_URLS = {
-  light: 'https://tiles.openfreemap.org/styles/positron',
-  dark: 'https://tiles.openfreemap.org/styles/dark',
-} as const;
 
 const CANADA_BOUNDS: maplibregl.LngLatBoundsLike = [[-141.5, 41.5], [-52, 75]];
 const SOURCE = 'stations';
@@ -103,20 +104,22 @@ export function createMap(
   maplibregl.setWorkerUrl(workerUrl);
   const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const byId = new Map(stations.map((station) => [station.id, station]));
+  const theme = currentTheme();
   const state = {
     mode: 'years' as ColorMode,
     province: '',
     selected: null as string | null,
     hover: null as string | null,
-    theme: currentTheme(),
+    theme,
+    basemap: chosenBasemap(theme),
   };
 
-  /** The dark basemap is lifted from near-black to a readable slate as it loads; the light one is used as published. */
-  const transformStyle: maplibregl.TransformStyleFunction = (_previous, next) => (state.theme === 'dark' ? brightenDarkStyle(next) : next);
+  /** Only OpenFreeMap's near-black dark style is lifted, as it loads; every other basemap is used as published. */
+  const transformStyle: maplibregl.TransformStyleFunction = (_previous, next) => (state.basemap.lift ? brightenDarkStyle(next) : next);
 
   const map = new maplibregl.Map({
     container: element,
-    style: STYLE_URLS[state.theme],
+    style: styleOf(state.basemap),
     transformStyle,
     bounds: CANADA_BOUNDS,
     fitBoundsOptions: { padding: 24 },
@@ -267,6 +270,20 @@ export function createMap(
     onLegend(legend);
   }
 
+  /** Shows a basemap. The same one again (the theme changed, not the map) only recolours our own layers. */
+  function useBasemap(next: Basemap): void {
+    const unchanged = next.id === state.basemap.id;
+    state.basemap = next;
+    element.dataset['basemap'] = next.id;
+    if (unchanged) {
+      applyState();
+      return;
+    }
+    // A new style drops our source and layers (no diffing, so none are half kept); `style.load` puts them back.
+    map.setStyle(styleOf(next), { diff: false, transformStyle });
+  }
+
+  element.dataset['basemap'] = state.basemap.id;
   map.on('style.load', addStationLayers);
 
   map.on('mousemove', LAYER, (event: maplibregl.MapLayerMouseEvent) => {
@@ -347,15 +364,14 @@ export function createMap(
         else map.flyTo({ ...target, duration: 900, essential: false });
       }
     },
+    setBasemap(id) {
+      const choice = resolveBasemap(state.theme, id);
+      saveBasemapId(state.theme, choice.id);
+      useBasemap(choice);
+    },
     refreshTheme() {
-      const theme = currentTheme();
-      if (theme === state.theme) {
-        applyState();
-        return;
-      }
-      state.theme = theme;
-      // Replacing the style drops our source and layers; `style.load` puts them back.
-      map.setStyle(STYLE_URLS[theme], { transformStyle });
+      state.theme = currentTheme();
+      useBasemap(chosenBasemap(state.theme));
     },
   };
 }

@@ -394,6 +394,9 @@ dialog h2 { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 12px; }
   .field { min-width: 0; flex: 1 1 0; }
 }
 @media (max-width: 520px) {
+  .filters { flex-wrap: wrap; }
+  .field { flex: 1 1 calc(50% - 4px); }
+  .field-basemap { flex-basis: 100%; }
   .btn .long { display: none; }
   .btn .short { display: inline; }
   .topbar { padding: 10px 14px; }

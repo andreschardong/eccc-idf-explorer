@@ -4,10 +4,11 @@ import { loadDataset, loadIndex } from './data';
 import { buildAboutAuthor, buildAboutData } from './about';
 import { append, byId, clear, h } from './dom';
 import { provinceName } from './format';
+import { basemapsFor, chosenBasemap } from './basemaps';
 import { createMap, type ColorMode, type LegendInfo } from './map';
 import { createSearch } from './search';
 import { isTabId, createStationPanel } from './station-panel';
-import { toggleTheme, watchSystemTheme } from './theme';
+import { currentTheme, toggleTheme, watchSystemTheme } from './theme';
 import type { DatasetInfo } from './types';
 
 async function start(): Promise<void> {
@@ -44,6 +45,16 @@ async function start(): Promise<void> {
   byId<HTMLSelectElement>('color-by').addEventListener('change', (event) => {
     map.setMode((event.target as HTMLSelectElement).value as ColorMode);
   });
+
+  // Each theme offers its own basemaps, so the list is rebuilt whenever the theme changes.
+  const basemap = byId<HTMLSelectElement>('basemap-select');
+  function listBasemaps(): void {
+    const theme = currentTheme();
+    basemap.replaceChildren(...basemapsFor(theme).map((option) => h('option', { value: option.id }, option.label)));
+    basemap.value = chosenBasemap(theme).id;
+  }
+  listBasemaps();
+  basemap.addEventListener('change', () => map.setBasemap(basemap.value));
 
   createSearch({
     input: byId<HTMLInputElement>('search-input'),
@@ -93,8 +104,12 @@ async function start(): Promise<void> {
   byId('theme-toggle').addEventListener('click', () => {
     toggleTheme();
     map.refreshTheme();
+    listBasemaps();
   });
-  watchSystemTheme(() => map.refreshTheme());
+  watchSystemTheme(() => {
+    map.refreshTheme();
+    listBasemaps();
+  });
 
   setupAbout(dataset);
 }

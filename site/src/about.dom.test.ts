@@ -43,6 +43,10 @@ describe('About the data', () => {
     expect(Object.keys(found)).toContain('OpenStreetMap');
   });
 
+  it('credits the satellite imagery', () => {
+    expect(text(sections[0] ?? null)).toContain('Satellite view: imagery © Esri, Maxar, Earthstar Geographics');
+  });
+
   it('points to the IDF_CC tool', () => {
     expect(links(sections[1])['IDF_CC tool']).toBe('https://www.idf-cc-uwo.ca/');
     expect(text(sections[1] ?? null)).toContain('climate change');
