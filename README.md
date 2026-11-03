@@ -1,0 +1,107 @@
+# ECCC Rainfall IDF Explorer
+
+[![CI](https://github.com/andreschardong/ECCCDataExplorer/actions/workflows/ci.yml/badge.svg)](https://github.com/andreschardong/ECCCDataExplorer/actions/workflows/ci.yml)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
+An interactive map and chart viewer for Environment and Climate Change Canada's rainfall
+**intensity-duration-frequency (IDF)** data: **release 3.40**, 751 stations, 5 minute to 24 hour
+storms, 2- to 200-year return periods.
+
+**[Open the explorer](https://andreschardong.github.io/ECCCDataExplorer/)**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/explorer-dark.png">
+  <img alt="The explorer showing the Toronto City station: a map of Ontario stations on the left, and on the right the 100-year 1-hour and 24-hour design depths with log-log IDF curves for seven return periods." src="docs/images/explorer-light.png">
+</picture>
+
+## What you can do
+
+- **Find a station** on a map coloured by years of record or by the 100-year, 1-hour or 24-hour
+  design depth, or search by name, climate ID or province. Station links are shareable
+  (`#/station/6158355/curves`).
+- **Read the curves.** Log-log IDF curves for all return periods, switchable between intensity
+  (mm/h) and depth (mm), with an optional 95 % confidence band, a tooltip and keyboard navigation.
+- **See the underlying numbers.** Depth, intensity with confidence limits, and the `R = A · T^B` fit
+  as tables, plus every year's annual maximum against the 2-, 10- and 100-year depths.
+- **Interpolate.** A calculator evaluates the fit for any duration from 5 minutes to 24 hours and
+  shows ECCC's published value next to it where one exists.
+- **Take the data with you.** CSV and JSON download for every station.
+
+It works in light and dark, on phones, with a screen reader (the tables are the text alternative to
+the charts), and with reduced motion.
+
+## Run it
+
+You need Node.js 22.12 or later. The data is already in the repository.
+
+```sh
+cd site
+npm ci
+npm run dev        # http://localhost:5173
+```
+
+`npm run build` writes a static site to `site/dist` that any web host can serve.
+
+## Regenerate the data
+
+Only needed when ECCC publishes a new release. You need the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+
+```sh
+node scripts/update-data.mjs                  # downloads release 3.40 (665 MB) and rebuilds
+node scripts/update-data.mjs <url-or-zip>     # a newer release
+```
+
+This runs the `eccc-idf` tool, which reads the whole download, **cross-checks every value against
+ECCC's own flat tables** and only then writes `site/public/data`. For release 3.40 that is 751
+stations and 147,947 values in agreement. You can run the check alone:
+
+```sh
+dotnet run --project src/EcccDataExplorer.Cli -- verify path/to/idf_v3-40_2025-12-5.zip
+```
+
+## How it works
+
+```
+ECCC zip ──► EcccDataExplorer.Idf ──► cross-check ──► site/public/data/*.json ──► static site
+ (751 .txt     parse the four tables      against ECCC's      (index + one file       (Vite, TypeScript,
+  files)       in each station file       flat tables         per station)           MapLibre, SVG charts)
+```
+
+| Folder | What it is |
+|---|---|
+| `src/EcccDataExplorer.Idf` | .NET 10 library: reads the ECCC download, parses station files, cross-checks, writes the site JSON |
+| `src/EcccDataExplorer.Cli` | The `eccc-idf` command (`build-site-data`, `verify`) |
+| `tests/EcccDataExplorer.Idf.Tests` | xUnit v3 tests, with real ECCC station files as fixtures |
+| `site` | The web app: TypeScript (strict), Vite, MapLibre GL, hand-written SVG charts, Vitest |
+| `docs/data-format.md` | The ECCC file format and the quirks found in it |
+
+There is no server and no database. The site fetches `stations.json` once and one small JSON file
+per station on demand.
+
+## Test
+
+```sh
+dotnet test --solution ECCCDataExplorer.slnx
+cd site && npm test && npm run typecheck
+```
+
+The parser tests run against real station files, including the awkward ones: stations with
+durations ECCC did not analyse, statistics that print as `*****` or `NaN`, and a "warning" block
+inside a data table. See [docs/data-format.md](docs/data-format.md).
+
+## Using the numbers
+
+This is an independent project, **not affiliated with or endorsed by ECCC**. It shows ECCC's values
+unchanged. Before using any value for design, read ECCC's own guidance on using IDF curves
+(*Best Practices for Using IDF Curves*, published beside the download), which covers short records,
+extrapolation and climate change, and cite the official release.
+
+## Credits and licence
+
+- Code: [MIT](LICENSE) © Andre Schardong.
+- Data: © Environment and Climate Change Canada, used under the
+  [Open Government Licence – Canada](https://open.canada.ca/en/open-government-licence-canada).
+- Base map: [OpenFreeMap](https://openfreemap.org), © OpenMapTiles, data © OpenStreetMap contributors.
+- Third-party components and fonts: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
