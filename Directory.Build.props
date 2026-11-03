@@ -16,7 +16,7 @@
   <PropertyGroup>
     <Authors>Andre Schardong</Authors>
     <Copyright>Copyright (c) Andre Schardong</Copyright>
-    <RepositoryUrl>https://github.com/andreschardong/ECCCDataExplorer</RepositoryUrl>
+    <RepositoryUrl>https://github.com/andreschardong/eccc-idf-explorer</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>

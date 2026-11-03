@@ -1,13 +1,13 @@
 # ECCC Rainfall IDF Explorer
 
-[![CI](https://github.com/andreschardong/ECCCDataExplorer/actions/workflows/ci.yml/badge.svg)](https://github.com/andreschardong/ECCCDataExplorer/actions/workflows/ci.yml)
+[![CI](https://github.com/andreschardong/eccc-idf-explorer/actions/workflows/ci.yml/badge.svg)](https://github.com/andreschardong/eccc-idf-explorer/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 An interactive map and chart viewer for Environment and Climate Change Canada's rainfall
 **intensity-duration-frequency (IDF)** data: **release 3.40**, 751 stations, 5 minute to 24 hour
 storms, 2- to 200-year return periods.
 
-**[Open the explorer](https://andreschardong.github.io/ECCCDataExplorer/)**
+**[Open the explorer](https://andreschardong.github.io/eccc-idf-explorer/)**
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/explorer-dark.png">
