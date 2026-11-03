@@ -7,7 +7,7 @@ function block(title: string, description: string, table: HTMLTableElement): HTM
   return h('section', { class: 'table-block' },
     h('h3', {}, title),
     description ? h('p', {}, description) : null,
-    h('div', { class: 'table-wrap' }, table));
+    h('div', { class: 'table-wrap', tabindex: 0, role: 'region', 'aria-label': `${title} (scrolls sideways on narrow screens)` }, table));
 }
 
 function periodHeaders(station: StationDetail): HTMLElement[] {
@@ -82,5 +82,5 @@ export function buildAnnualTable(station: StationDetail): HTMLElement {
     h('caption', { class: 'visually-hidden' }, 'Annual maximum rainfall depth in millimetres by year and duration'),
     h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Year'), ...station.durations.map((m) => h('th', { scope: 'col' }, durationLabel(m))))),
     h('tbody', {}, body));
-  return h('div', { class: 'table-wrap scroll-y' }, table);
+  return h('div', { class: 'table-wrap scroll-y', tabindex: 0, role: 'region', 'aria-label': 'Annual maximum depths by year (scrolls)' }, table);
 }

@@ -15,6 +15,10 @@ export function buildCalculator(station: StationDetail): HTMLElement {
   const period = h('select', { id: 'calc-period' },
     station.returnPeriods.map((years) => h('option', { value: years, selected: years === defaultPeriod }, returnPeriodLabel(years))));
 
+  // Set the defaults on the controls themselves; the `selected` attribute alone is not dependable everywhere.
+  unit.value = 'min';
+  period.value = String(defaultPeriod);
+
   const intensity = h('dd');
   const depth = h('dd');
   const formula = h('p', { class: 'calc-formula' });
