@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# Raw ECCC files are Latin-1; never normalise their bytes or line endings.
+tests/**/Fixtures/** -text
+
+*.png binary
+*.ico binary
+*.zip binary
