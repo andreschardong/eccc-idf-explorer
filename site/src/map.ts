@@ -11,6 +11,7 @@ import {
 } from './binning';
 import { textOn } from './contrast';
 import { prettyName } from './format';
+import { brightenDarkStyle } from './map-style';
 import { cssVar, currentTheme } from './theme';
 import type { StationSummary } from './types';
 
@@ -110,9 +111,13 @@ export function createMap(
     theme: currentTheme(),
   };
 
+  /** The dark basemap is lifted from near-black to a readable slate as it loads; the light one is used as published. */
+  const transformStyle: maplibregl.TransformStyleFunction = (_previous, next) => (state.theme === 'dark' ? brightenDarkStyle(next) : next);
+
   const map = new maplibregl.Map({
     container: element,
     style: STYLE_URLS[state.theme],
+    transformStyle,
     bounds: CANADA_BOUNDS,
     fitBoundsOptions: { padding: 24 },
     minZoom: 2.5,
@@ -350,7 +355,7 @@ export function createMap(
       }
       state.theme = theme;
       // Replacing the style drops our source and layers; `style.load` puts them back.
-      map.setStyle(STYLE_URLS[theme]);
+      map.setStyle(STYLE_URLS[theme], { transformStyle });
     },
   };
 }
