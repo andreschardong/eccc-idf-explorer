@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ECCC Rainfall IDF Explorer</title>
+  <meta name="description" content="Browse Environment and Climate Change Canada's rainfall intensity-duration-frequency (IDF) curves for 751 stations, release 3.40. Map, curves, tables, calculator and CSV download.">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="ECCC Rainfall IDF Explorer">
+  <meta property="og:description" content="Rainfall intensity-duration-frequency curves for 751 Canadian stations (ECCC release 3.40).">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script>
+    // Apply a saved theme before first paint so the page does not flash.
+    try {
+      var saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+    } catch (e) { /* storage blocked: follow the system setting */ }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#station-panel">Skip to station details</a>
+
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="ECCC Rainfall IDF Explorer, home">
+        <span class="brand-tile" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="22" height="22">
+            <path d="M6 5v20h20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 21C12 13 17 11 26 10.5M9 25C14 19 18 17.5 26 17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-title">Rainfall IDF Explorer</span>
+          <span class="brand-sub" id="release-line">ECCC release 3.40</span>
+        </span>
+      </a>
+      <nav class="topbar-actions" aria-label="Site">
+        <button type="button" class="btn btn-quiet" id="about-open">About the data</button>
+        <a class="btn btn-quiet" href="https://github.com/andreschardong/ECCCDataExplorer" rel="noopener">Source code</a>
+        <button type="button" class="btn btn-icon" id="theme-toggle" aria-label="Switch colour theme" title="Switch colour theme">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="map-card" aria-label="Station map">
+        <div id="map" role="application" aria-label="Map of ECCC IDF stations. Use the search box to pick a station by keyboard."></div>
+        <div class="map-controls">
+          <div class="search" id="search">
+            <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <label class="visually-hidden" for="search-input">Search stations by name, climate ID or province</label>
+            <input id="search-input" type="search" placeholder="Search a station or climate ID" autocomplete="off" spellcheck="false"
+                   role="combobox" aria-expanded="false" aria-controls="search-list" aria-autocomplete="list">
+            <ul id="search-list" role="listbox" aria-label="Matching stations" hidden></ul>
+          </div>
+          <div class="filters">
+            <label class="field">
+              <span>Province</span>
+              <select id="province-filter"><option value="">All of Canada</option></select>
+            </label>
+            <label class="field">
+              <span>Colour by</span>
+              <select id="color-by">
+                <option value="years">Years of record</option>
+                <option value="d1h">100-year, 1-hour depth</option>
+                <option value="d24h">100-year, 24-hour depth</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="legend" id="legend" aria-label="Map legend"></div>
+        <noscript><p class="noscript">This explorer needs JavaScript to draw the map and charts.</p></noscript>
+      </section>
+
+      <aside class="station-card" id="station-panel" tabindex="-1" aria-live="polite" aria-label="Station details">
+        <div id="panel-empty"></div>
+        <div id="panel-station" hidden></div>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="about" aria-labelledby="about-title">
+    <form method="dialog" class="dialog-close"><button class="btn btn-icon" aria-label="Close">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button></form>
+    <h2 id="about-title">About the data</h2>
+    <div class="prose" id="about-body"></div>
+  </dialog>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
