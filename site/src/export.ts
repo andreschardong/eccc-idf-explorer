@@ -1,4 +1,5 @@
 // Client-side export of one station as CSV. Pure string building; `downloadText` is the only DOM use.
+import { saveBlob } from './download';
 import type { StationDetail } from './types';
 
 const HEADER = [
@@ -34,13 +35,5 @@ export function csvFileName(station: Pick<StationDetail, 'id'>, release: string)
 
 /** Offers `text` as a file download. A BOM keeps accented station names intact in Excel. */
 export function downloadText(fileName: string, text: string, mime = 'text/csv;charset=utf-8'): void {
-  const blob = new Blob(['﻿', text], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveBlob(new Blob(['\uFEFF', text], { type: mime }), fileName);
 }

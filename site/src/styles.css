@@ -403,14 +403,21 @@ dialog h2 { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 12px; }
   .chart .bar.over { fill: Highlight; }
 }
 
-/* ---- Official files tab -------------------------------------------------------- */
+/* ---- Files tab ------------------------------------------------------------------- */
+.files h4 { font-size: 1rem; font-weight: 700; }
+.files-status { min-height: 1.5em; margin: 6px 0 10px; color: var(--ink-2); font-size: 0.875rem; }
+.plot { margin: 14px 0 0; }
+.plot figcaption { margin-top: 8px; color: var(--ink-2); font-size: 0.875rem; max-width: 62ch; }
 .official-preview { display: block; border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; background: #fff; }
 .official-preview img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; }
-.file-list { list-style: none; margin: 18px 0 0; padding: 0; border-top: 1px solid var(--hair); }
-.file-row { display: flex; gap: 16px; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--hair); }
-.file-row p { margin: 2px 0 0; color: var(--ink-2); font-size: 0.875rem; max-width: 46ch; }
-.file-links { display: flex; gap: 8px; flex: none; }
-@media (max-width: 520px) { .file-row { flex-direction: column; align-items: flex-start; } }
+.plot-error { margin-top: 8px; padding: 10px 14px; border-radius: 12px; background: var(--plane); box-shadow: inset 3px 0 0 var(--series-2); font-size: 0.875rem; }
+.file-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.station-file { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--hair); }
+.station-file p { margin-top: 2px; color: var(--ink-2); font-size: 0.875rem; max-width: 62ch; }
+pre.station-text {
+  max-height: 380px; overflow: auto; margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--hair); border-radius: 12px;
+  background: var(--plane); font: 12.5px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre;
+}
 
 /* ---- About dialog and legend note ---------------------------------------------- */
 .about-section + .about-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hair); }
