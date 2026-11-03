@@ -10,6 +10,7 @@ import { csvFileName, downloadText, stationToCsv } from './export';
 import {
   durationLabel, formatCoordinates, formatValue, prettyName, provinceName, returnPeriodLabel,
 } from './format';
+import { equationText, equations } from './equations';
 import { renderIdfChart, type ChartController, type IdfOptions } from './idf-chart';
 import { buildAnnualTable, buildTablesPanel } from './tables';
 import type { DatasetInfo, StationDetail, StationSummary } from './types';
@@ -244,14 +245,25 @@ export function createStationPanel({
           chart.update({ ciPeriod: picked ? Number(picked) : null });
         },
       }, h('option', { value: '' }, 'None'), station.returnPeriods.map((y) => h('option', { value: y }, returnPeriodLabel(y))));
+      const fitToggle = h('input', {
+        type: 'checkbox', id: 'fit-toggle', checked: true, onchange: (event: Event) => chart.update({ showFit: (event.target as HTMLInputElement).checked }),
+      });
+      const equationList = equations(station);
       el.append(
         h('div', { class: 'chart-head' },
           h('div', {},
             h('h3', { class: 'chart-title' }, 'Rainfall intensity–duration–frequency'),
             h('p', { class: 'chart-sub' }, 'Longer storms are less intense; rarer storms are more intense.')),
           h('div', { class: 'seg', role: 'group', 'aria-label': 'Quantity shown' }, ...modeButtons)),
-        h('label', { class: 'inline-field', for: 'ci-select' }, '95 % limits for', limits),
+        h('div', { class: 'chart-controls' },
+          h('label', { class: 'inline-field', for: 'ci-select' }, '95 % limits for', limits),
+          h('label', { class: 'inline-field', for: 'fit-toggle' }, fitToggle, "Show ECCC's fitted equations")),
         holder,
+        h('details', { class: 'equations', hidden: equationList.length === 0 },
+          h('summary', {}, "ECCC's fitted equations"),
+          h('p', {}, "R is rainfall intensity in mm/h and T is storm duration in hours; depth in mm is R × T. ECCC fitted one line to each return period's own values."),
+          h('ul', {}, equationList.map((e) => h('li', { class: `c${Math.round((e.index / Math.max(1, station.returnPeriods.length - 1)) * 6)}` },
+            h('i'), h('strong', {}, `${e.years}-year`), equationText(e))))),
         h('p', { class: 'chart-note' }, `Gumbel distribution fitted by the method of moments to ${station.years} years of annual maxima (${station.firstYear}–${station.lastYear}). Values are from ECCC release ${dataset.release}. These curves describe the past climate; for curves updated for climate change, use the `,
           h('a', { href: IDF_CC_URL, rel: 'noopener' }, 'IDF_CC tool'), '.'));
     }

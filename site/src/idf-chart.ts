@@ -1,5 +1,6 @@
 // IDF curves: rainfall intensity (or depth) against duration, one curve per return period, log-log.
 import { clear, h, observeWidth, s } from './dom';
+import { equations, fitSpanHours, fittedValue } from './equations';
 import {
   durationAxisLabel, durationLabel, formatValue, prettyName, returnPeriodLabel,
 } from './format';
@@ -14,6 +15,8 @@ export interface IdfOptions {
   mode: IdfMode;
   /** Return period (years) whose 95 % confidence band is drawn, or null for none. */
   ciPeriod: number | null;
+  /** Draw ECCC's fitted equation R = A × T^B as a line for each return period. */
+  showFit: boolean;
 }
 
 export interface ChartController<T> {
@@ -40,15 +43,18 @@ export function renderIdfChart(
   station: StationDetail,
   initial: Partial<IdfOptions> = {},
 ): ChartController<IdfOptions> {
-  const state: IdfOptions = { mode: 'intensity', ciPeriod: null, ...initial };
+  const state: IdfOptions = { mode: 'intensity', ciPeriod: null, showFit: true, ...initial };
   let width = 0;
   let activeIndex: number | null = null;
 
   const legend = h('ul', { class: 'legend-inline', 'aria-label': 'Return periods' },
     station.returnPeriods.map((years, p) => h('li', { class: `c${colourIndex(p, station.returnPeriods.length)}` },
       h('i'), returnPeriodLabel(years))));
+  const keys = h('ul', { class: 'legend-inline', 'aria-label': 'What the marks mean' },
+    h('li', {}, h('i', { class: 'dot-key' }), "ECCC's published value"),
+    h('li', {}, h('i', { class: 'fit-key' }), "ECCC's fitted equation, R = A × T^B"));
   const area = h('div', { class: 'chart' });
-  clear(container).append(legend, area);
+  clear(container).append(legend, keys, area);
 
   const value = (d: number, p: number): number | null => (state.mode === 'depth' ? station.depths[d]?.[p] : station.rates[d]?.[p]) ?? null;
   const halfWidth = (d: number, p: number): number | null => {
@@ -66,6 +72,7 @@ export function renderIdfChart(
     const to = station.rates[lastD]?.[p];
     return `IDF curves for ${prettyName(station.name)}: ${station.returnPeriods.length} return periods from ${station.returnPeriods[0]} to ${station.returnPeriods[station.returnPeriods.length - 1]} years, plotted on log-log axes. `
       + `The ${station.returnPeriods[p]}-year intensity falls from ${formatValue(from)} mm/h at ${first >= 0 ? durationLabel(station.durations[first] as number) : 'the shortest duration'} to ${formatValue(to)} mm/h at ${durationLabel(station.durations[lastD] as number)}. `
+      + "Dots are ECCC's published values and lines are ECCC's fitted equation, R = A × T^B. "
       + 'Use the left and right arrow keys to read values by duration. The Tables tab holds the same numbers.';
   }
 
@@ -79,6 +86,9 @@ export function renderIdfChart(
     const xMax = durations[durations.length - 1] as number;
     const x = logScale(xMin, xMax, MARGIN.left, MARGIN.left + plotW);
     const bandP = state.ciPeriod === null ? -1 : returnPeriods.indexOf(state.ciPeriod);
+    const fits = state.showFit ? equations(station) : [];
+    const span = fitSpanHours(station);
+    const colourClass = (p: number): string => `c${colourIndex(p, returnPeriods.length)}`;
 
     const all: number[] = [];
     durations.forEach((_, d) => returnPeriods.forEach((__, p) => {
@@ -91,6 +101,9 @@ export function renderIdfChart(
         const w = halfWidth(d, bandP);
         if (v !== null && w !== null && v - w > 0) all.push(v - w, v + w);
       });
+    }
+    if (span) {
+      for (const equation of fits) all.push(fittedValue(equation, span.from, state.mode), fittedValue(equation, span.to, state.mode));
     }
     const yLo = nice125Down(Math.min(...all) * 0.9);
     const yHi = nice125Up(Math.max(...all) * 1.08);
@@ -159,27 +172,31 @@ export function renderIdfChart(
       }
     }
 
-    // Curves, drawn from the shortest return period up so the longest sits on top.
+    // ECCC's fitted equations, one line per return period. A power law is a straight line on log-log axes, so two
+    // endpoints draw it exactly. Each line stops where ECCC's fit does: at the shortest duration it analysed.
+    if (span) {
+      for (const equation of fits) {
+        const x1 = x(span.from * 60);
+        const x2 = x(span.to * 60);
+        const y1 = y(fittedValue(equation, span.from, state.mode));
+        const y2 = y(fittedValue(equation, span.to, state.mode));
+        svg.append(s('path', {
+          class: `fit ${colourClass(equation.index)}`,
+          d: `M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`,
+        }));
+      }
+    }
+
+    // ECCC's published values: dots only, never joined, because each is a separate estimate for one duration.
     const ends: { years: number; cls: string; px: number; py: number }[] = [];
     returnPeriods.forEach((years, p) => {
-      const cls = `c${colourIndex(p, returnPeriods.length)}`;
-      let path = '';
-      let pen = false;
+      const cls = colourClass(p);
       let last: { px: number; py: number } | null = null;
       durations.forEach((minutes, d) => {
         const v = value(d, p);
-        if (v === null) {
-          pen = false;
-          return;
-        }
-        path += `${pen ? 'L' : 'M'}${x(minutes).toFixed(1)} ${y(v).toFixed(1)}`;
-        pen = true;
+        if (v === null) return;
+        svg.append(s('circle', { class: `dot ${cls}`, cx: x(minutes), cy: y(v), r: 4.25 }));
         last = { px: x(minutes), py: y(v) };
-      });
-      svg.append(s('path', { class: `line ${cls}`, d: path }));
-      durations.forEach((minutes, d) => {
-        const v = value(d, p);
-        if (v !== null) svg.append(s('circle', { class: `dot ${cls}`, cx: x(minutes), cy: y(v), r: 3.5 }));
       });
       if (last) ends.push({ years, cls, ...(last as { px: number; py: number }) });
     });
@@ -220,7 +237,7 @@ export function renderIdfChart(
         const v = value(d, p);
         if (v === null) return;
         const cls = `c${colourIndex(p, returnPeriods.length)}`;
-        highlights.append(s('circle', { class: `dot ${cls}`, cx: px, cy: y(v), r: 5.5 }));
+        highlights.append(s('circle', { class: `dot ${cls}`, cx: px, cy: y(v), r: 6.5 }));
         const w = halfWidth(d, p);
         rows.unshift(h('div', { class: `tip-row ${cls}` },
           h('span', { class: 'tip-swatch' }),
@@ -272,6 +289,7 @@ export function renderIdfChart(
 
   function draw(newWidth: number): void {
     width = newWidth;
+    (keys.lastElementChild as HTMLElement).hidden = !state.showFit;
     clear(area);
     area.prepend(buildSvg());
   }
