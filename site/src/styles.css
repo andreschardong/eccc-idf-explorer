@@ -149,6 +149,7 @@ a { color: var(--accent); }
 .btn-quiet { border-color: transparent; background: transparent; }
 .btn-quiet:hover { background: var(--accent-wash); }
 .btn-icon { width: 40px; padding: 0; }
+.btn .short { display: none; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn-primary:hover { background: var(--accent); filter: brightness(1.1); }
 
@@ -393,8 +394,13 @@ dialog h2 { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 12px; }
   .field { min-width: 0; flex: 1 1 0; }
 }
 @media (max-width: 520px) {
+  .btn .long { display: none; }
+  .btn .short { display: inline; }
   .topbar { padding: 10px 14px; }
-  .brand-title { font-size: 1rem; white-space: nowrap; }
+  /* The title may wrap onto two lines; the buttons never do, so the header cannot outgrow the screen. */
+  .brand { flex: 1 1 auto; }
+  .brand-title { font-size: 1rem; }
+  .topbar-actions { flex: none; }
   .topbar-actions .btn { white-space: nowrap; }
   .tab { padding: 9px 8px; font-size: 0.9375rem; }
   .topbar-actions a.btn-quiet { display: none; }
@@ -403,6 +409,10 @@ dialog h2 { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 12px; }
   .tabpanel { padding-left: 18px; padding-right: 18px; }
   .pane-section { padding: 20px 18px; }
   .tile dd:not(.tile-sub) { font-size: 1.625rem; }
+}
+@media (max-width: 380px) {
+  /* Decorative, and worth less than the room it takes on the smallest phones. */
+  .brand-tile { display: none; }
 }
 @media (forced-colors: active) {
   .chart .fit { stroke: CanvasText; }

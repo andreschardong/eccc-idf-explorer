@@ -340,20 +340,44 @@ test.describe('about, the author and the IDF_CC tool', () => {
     await expect(page.getByRole('navigation', { name: 'Site' }).getByRole('link', { name: 'IDF_CC tool' })).toHaveAttribute('href', 'https://www.idf-cc-uwo.ca');
   });
 
-  test('the About dialog explains the data, the related tool and the author', async ({ page }) => {
+  test('About the data opens the data notes and the pointer to climate-change curves, and nothing about the author', async ({ page }) => {
     await openExplorer(page);
-    await page.getByRole('button', { name: 'About', exact: true }).click();
-    const dialog = page.getByRole('dialog');
+    await page.getByRole('button', { name: 'About the data' }).click();
+    const dialog = page.getByRole('dialog', { name: 'About the data' });
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('heading', { level: 3 })).toHaveText(['About the data', 'Curves for a changing climate', 'About the author']);
+    await expect(dialog.getByRole('heading', { level: 3 })).toHaveText(['Curves for a changing climate']);
     await expect(dialog).toContainText('not affiliated with or endorsed by ECCC');
+    await expect(dialog).toContainText('751 stations');
     await expect(dialog.getByRole('link', { name: 'IDF_CC tool' })).toHaveAttribute('href', 'https://www.idf-cc-uwo.ca');
+    await expect(dialog).not.toContainText('Schardong');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole('button', { name: 'About the data' })).toBeFocused();
+  });
+
+  test('About the author opens the author, the paper and the links, and nothing about the data', async ({ page }) => {
+    await openExplorer(page);
+    await page.getByRole('button', { name: 'About the author' }).click();
+    const dialog = page.getByRole('dialog', { name: 'About the author' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { level: 3 })).toHaveText(['The paper behind the IDF_CC tool', 'Elsewhere']);
     await expect(dialog).toContainText('Andre Schardong is a senior software engineer');
     await expect(dialog.getByRole('link', { name: 'andreschardong.com' })).toHaveAttribute('href', 'https://andreschardong.com');
     await expect(dialog.getByRole('link', { name: /doi\.org\/10\.3390\/w12051243/ })).toBeVisible();
+    await expect(dialog).not.toContainText('751 stations');
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(page.getByRole('button', { name: 'About', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'About the author' })).toBeFocused();
+  });
+
+  test('the two menu items open different dialogs, one after the other', async ({ page }) => {
+    await openExplorer(page);
+    await page.getByRole('button', { name: 'About the author' }).click();
+    await expect(page.getByRole('dialog')).toContainText('senior software engineer');
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'About the data' }).click();
+    await expect(page.getByRole('dialog')).toContainText('751 stations');
+    await expect(page.getByRole('dialog')).not.toContainText('senior software engineer');
   });
 
   test('the curves tab points to the IDF_CC tool for climate-change curves', async ({ page }) => {
@@ -401,6 +425,20 @@ test.describe('on a phone', () => {
       expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
     }
   });
+
+  for (const width of [390, 320]) {
+    test(`keeps both About menu items and the theme switch in the header at ${width}px, with short labels`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 740 });
+      await openExplorer(page);
+      for (const name of ['Data', 'Author', 'Switch colour theme']) {
+        const box = await page.getByRole('button', { name, exact: true }).boundingBox();
+        expect(box, name).not.toBeNull();
+        expect((box?.x ?? 0) + (box?.width ?? 0), name).toBeLessThanOrEqual(width);
+      }
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+  }
 
   test('keeps the search and both filters inside the map', async ({ page }) => {
     await openExplorer(page);
