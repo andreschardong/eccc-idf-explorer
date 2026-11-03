@@ -30,6 +30,9 @@ export const test = base.extend<{ allowedConsoleErrors: RegExp[] }>({
       if (url.includes('/fonts/')) return route.fulfill({ body: '', contentType: 'application/x-protobuf' });
       return route.abort();
     });
+    await page.route('https://server.arcgisonline.com/**', (route) => route.fulfill({
+      body: PIXEL, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' },
+    }));
     await page.route('https://eccc-idf-files.andreschardong.workers.dev/**', (route) => {
       const url = route.request().url();
       const cors = { 'access-control-allow-origin': '*' };

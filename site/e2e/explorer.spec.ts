@@ -399,6 +399,54 @@ test.describe('appearance', () => {
     await expect(page.locator('#map')).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
   });
 
+  test('offers light basemaps in light mode and starts on the light grey one', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await openExplorer(page);
+    await expect(page.getByLabel('Basemap')).toHaveValue('light');
+    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Light grey', 'Streets', 'Bright', 'Satellite']);
+    await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'light');
+  });
+
+  test('offers dark basemaps in dark mode and starts on Slate', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await openExplorer(page);
+    await expect(page.getByLabel('Basemap')).toHaveValue('slate');
+    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Slate', 'Charcoal', 'Satellite']);
+    await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'slate');
+  });
+
+  test('changing the basemap redraws the map with the stations still on it, and a reload keeps the choice', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await openExplorer(page);
+    const before = await mapCounts(page);
+    expect(before.groups + before.singles).toBeGreaterThan(0);
+    for (const choice of ['charcoal', 'satellite', 'slate']) {
+      await page.getByLabel('Basemap').selectOption(choice);
+      await expect(page.locator('#map')).toHaveAttribute('data-basemap', choice);
+      // The new style drops our layers and puts them back; the counts come from what is drawn once the map is idle.
+      await expect.poll(async () => (await mapCounts(page)).groups, { timeout: 20_000 }).toBe(before.groups);
+    }
+    await page.getByLabel('Basemap').selectOption('satellite');
+    await page.reload();
+    await expect(page.locator('#map')).toHaveAttribute('data-map-ready', 'true', { timeout: 30_000 });
+    await expect(page.getByLabel('Basemap')).toHaveValue('satellite');
+    await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'satellite');
+  });
+
+  test('switching theme lists the basemaps of the new theme, each theme remembering its own choice', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await openExplorer(page);
+    await page.getByLabel('Basemap').selectOption('streets');
+    await page.getByRole('button', { name: 'Switch colour theme' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.getByLabel('Basemap').locator('option')).toHaveText(['Slate', 'Charcoal', 'Satellite']);
+    await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'slate');
+    await page.getByLabel('Basemap').selectOption('charcoal');
+    await page.getByRole('button', { name: 'Switch colour theme' }).click();
+    await expect(page.getByLabel('Basemap')).toHaveValue('streets');
+    await expect(page.locator('#map')).toHaveAttribute('data-basemap', 'streets');
+  });
+
   test('follows the system dark setting', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await openExplorer(page);
@@ -441,11 +489,15 @@ test.describe('on a phone', () => {
     });
   }
 
-  test('keeps the search and both filters inside the map', async ({ page }) => {
+  test('keeps the search and all three filters inside the map, wide enough to read', async ({ page }) => {
     await openExplorer(page);
-    for (const control of [page.getByRole('combobox', { name: /search stations/i }), page.locator('#province-filter'), page.locator('#color-by')]) {
+    for (const control of [page.getByRole('combobox', { name: /search stations/i }), page.locator('#province-filter'), page.locator('#color-by'), page.locator('#basemap-select')]) {
       const box = await control.boundingBox();
       expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+    }
+    // Province and Colour by share a row: each stays wide enough for "All of Canada" and "Years of record".
+    for (const id of ['#province-filter', '#color-by']) {
+      expect((await page.locator(id).boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(140);
     }
   });
 });
