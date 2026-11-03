@@ -1,0 +1,26 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.binlog
+
+# Node / tooling
+node_modules/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Local scratch and the raw ECCC download (665 MB, fetched on demand)
+/scratch/
+/data-source/
+*.zip
+
+# Site build output and dependencies
+site/dist/
+site/node_modules/
