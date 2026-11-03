@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
+import { unzipSync } from 'fflate';
 import {
-  expect, mapCounts, openExplorer, test,
+  PIXEL, STUB_PDF, STUB_TEXT, expect, mapCounts, openExplorer, test,
 } from './fixtures';
 
 test.describe('opening the explorer', () => {
@@ -117,9 +118,15 @@ test.describe('a station', () => {
 
   test('reads the IDF chart with the mouse and switches to depth', async ({ page }) => {
     await openExplorer(page, '#/station/6158355/curves');
-    const box = await page.locator('#panel-curves svg').boundingBox();
-    await page.mouse.move((box?.x ?? 0) + (box?.width ?? 0) * 0.5, (box?.y ?? 0) + (box?.height ?? 0) * 0.5);
-    await expect(page.locator('#panel-curves .chart-tip')).toBeVisible();
+    // The chart can sit below the fold and redraws once when the panel gets its scrollbar, so scroll to it and move the
+    // mouse again until the tooltip shows, as a visitor would.
+    await page.locator('#panel-curves svg').scrollIntoViewIfNeeded();
+    await expect(async () => {
+      const box = await page.locator('#panel-curves svg').boundingBox();
+      await page.mouse.move((box?.x ?? 0) + (box?.width ?? 0) * 0.5, (box?.y ?? 0) + (box?.height ?? 0) * 0.5);
+      await page.mouse.move((box?.x ?? 0) + (box?.width ?? 0) * 0.52, (box?.y ?? 0) + (box?.height ?? 0) * 0.5);
+      await expect(page.locator('#panel-curves .chart-tip')).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10_000 });
     await page.getByRole('button', { name: 'Depth (mm)' }).click();
     await expect(page.getByText('Rainfall depth (mm)').first()).toBeVisible();
   });
@@ -161,8 +168,8 @@ test.describe('a station', () => {
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Tables' })).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('End');
-    await expect(page.getByRole('tab', { name: 'Official' })).toHaveAttribute('aria-selected', 'true');
-    expect(page.url()).toContain('/official');
+    await expect(page.getByRole('tab', { name: 'Files' })).toHaveAttribute('aria-selected', 'true');
+    expect(page.url()).toContain('/files');
   });
 
   test('notes a short record and shades the durations ECCC did not analyse', async ({ page }) => {
@@ -185,21 +192,129 @@ test.describe('a station', () => {
     expect(lines[1]).toMatch(/^6158355,TORONTO CITY,ON,43\.6667,-79\.4,5,2,/);
   });
 
+  test('puts Download files beside Download CSV and Download JSON, and opens the files', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/curves');
+    const row = page.locator('.station-actions');
+    await expect(row.locator('> *')).toHaveText(['Download CSV', 'Download JSON', 'Download files', 'Copy link']);
+    await row.getByRole('button', { name: 'Download files' }).click();
+    await expect(page.getByRole('tab', { name: 'Files' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#panel-files')).toBeVisible();
+    await expect(page.locator('#panel-files img')).toBeVisible();
+    expect(page.url()).toContain('/files');
+  });
+
   test('offers the JSON file', async ({ page }) => {
     await openExplorer(page, '#/station/6158355/curves');
     await expect(page.getByRole('link', { name: 'Download JSON' })).toHaveAttribute('href', /\/data\/stations\/6158355\.json$/);
   });
 });
 
-test.describe('official files', () => {
-  test('lists ECCC\'s own graphs and station file with addresses on the files host', async ({ page }) => {
-    await openExplorer(page, '#/station/6158355/official');
-    const panel = page.locator('#panel-official');
-    await expect(panel.locator('img')).toHaveAttribute('src', 'https://eccc-idf-files.andreschardong.workers.dev/v3.40/stations/6158355/idf_v3-40_2025_12_5_615_ON_6158355_TORONTO_CITY.png');
-    await expect(panel.locator('.file-row')).toHaveCount(5);
-    await expect(panel.getByRole('link', { name: 'TXT' })).toHaveAttribute('href', /\/v3\.40\/stations\/6158355\/idf_v3-40_2025_12_5_615_ON_6158355_TORONTO_CITY\.txt$/);
-    await expect(panel.getByRole('link', { name: 'PDF', exact: true })).toHaveCount(4);
-    await expect(panel.getByRole('link', { name: 'PNG', exact: true })).toHaveCount(4);
+test.describe('files for each station', () => {
+  const STEM = 'idf_v3-40_2025_12_5_615_ON_6158355_TORONTO_CITY';
+  const HOST = 'https://eccc-idf-files.andreschardong.workers.dev/v3.40/stations/6158355';
+
+  test('opens on ECCC\'s IDF graph and says what it shows', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    const panel = page.locator('#panel-files');
+    await expect(panel.getByRole('heading', { level: 3, name: 'Files for this station' })).toBeVisible();
+    await expect(panel.locator('img')).toHaveAttribute('src', `${HOST}/${STEM}.png`);
+    await expect(panel.locator('figcaption')).toContainText('IDF graph. The official intensity-duration-frequency curves');
+    await expect(panel.getByRole('button', { name: 'IDF graph', pressed: true })).toBeVisible();
+  });
+
+  test('shows each of the four plots', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    const panel = page.locator('#panel-files');
+    for (const [button, suffix, caption] of [
+      ['Q–Q plot', '_qq', 'Quantile-quantile plot'],
+      ['Return levels', '_r', 'Return-level plot'],
+      ['Trend', '_t', 'Trend plot'],
+      ['IDF graph', '', 'IDF graph'],
+    ] as const) {
+      await panel.getByRole('button', { name: button }).click();
+      await expect(panel.locator('img')).toHaveAttribute('src', `${HOST}/${STEM}${suffix}.png`);
+      await expect(panel.locator('figcaption')).toContainText(caption);
+      await expect(panel.getByRole('button', { name: button, pressed: true })).toBeVisible();
+      await expect(panel.getByRole('link', { name: 'Open PDF' })).toHaveAttribute('href', `${HOST}/${STEM}${suffix}.pdf`);
+    }
+  });
+
+  test('opens the PDF in a new tab', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    const link = page.locator('#panel-files').getByRole('link', { name: 'Open PDF' });
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', /noopener/);
+  });
+
+  test('downloads a plot as PDF or PNG under ECCC\'s own file name', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    const panel = page.locator('#panel-files');
+    await panel.getByRole('button', { name: 'Return levels' }).click();
+
+    const pdf = page.waitForEvent('download');
+    await panel.getByRole('button', { name: 'Download PDF' }).click();
+    const pdfFile = await pdf;
+    expect(pdfFile.suggestedFilename()).toBe(`${STEM}_r.pdf`);
+    expect((await readFile(await pdfFile.path())).toString('latin1')).toBe(STUB_PDF.toString('latin1'));
+    await expect(panel.getByRole('status')).toContainText(`Saved ${STEM}_r.pdf`);
+
+    const png = page.waitForEvent('download');
+    await panel.getByRole('button', { name: 'Download PNG' }).click();
+    expect((await png).suggestedFilename()).toBe(`${STEM}_r.png`);
+  });
+
+  test('downloads the station\'s text file', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    const download = page.waitForEvent('download');
+    await page.locator('#panel-files').getByRole('button', { name: 'Download TXT' }).click();
+    const file = await download;
+    expect(file.suggestedFilename()).toBe(`${STEM}.txt`);
+    expect(Buffer.compare(await readFile(await file.path()), STUB_TEXT)).toBe(0);
+  });
+
+  test('downloads all nine files as one ZIP', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download all files (ZIP)' }).click();
+    const file = await download;
+    expect(file.suggestedFilename()).toBe('eccc-idf-v3.40-6158355-official-files.zip');
+    const entries = unzipSync(new Uint8Array(await readFile(await file.path())));
+    expect(Object.keys(entries).sort()).toEqual([
+      `${STEM}.pdf`, `${STEM}.png`, `${STEM}.txt`,
+      `${STEM}_qq.pdf`, `${STEM}_qq.png`, `${STEM}_r.pdf`, `${STEM}_r.png`, `${STEM}_t.pdf`, `${STEM}_t.png`,
+    ].sort());
+    expect(Buffer.from(entries[`${STEM}.pdf`] as Uint8Array).toString('latin1')).toBe(STUB_PDF.toString('latin1'));
+    expect(Buffer.compare(Buffer.from(entries[`${STEM}.png`] as Uint8Array), PIXEL)).toBe(0);
+    expect(Buffer.compare(Buffer.from(entries[`${STEM}.txt`] as Uint8Array), STUB_TEXT)).toBe(0);
+    await expect(page.getByRole('status')).toContainText('Saved eccc-idf-v3.40-6158355-official-files.zip (9 files');
+  });
+
+  test('reads the station file in place, with its accents', async ({ page }) => {
+    await openExplorer(page, '#/station/6158355/files');
+    const panel = page.locator('#panel-files');
+    await expect(panel.locator('pre')).toBeHidden();
+    await panel.getByRole('button', { name: 'View text' }).click();
+    await expect(panel.locator('pre')).toBeVisible();
+    await expect(panel.locator('pre')).toContainText("Données sur l'intensité");
+    await panel.getByRole('button', { name: 'Hide text' }).click();
+    await expect(panel.locator('pre')).toBeHidden();
+  });
+
+  test.describe('when the host does not have a file', () => {
+    test.use({ allowedConsoleErrors: [/Failed to load resource/] });
+
+    test('says so, and does not save anything', async ({ page }) => {
+      await page.route('**/*.pdf', (route) => route.fulfill({ status: 404, body: 'not found', headers: { 'access-control-allow-origin': '*' } }));
+      await openExplorer(page, '#/station/6158355/files');
+      const panel = page.locator('#panel-files');
+      let saved = false;
+      page.on('download', () => { saved = true; });
+      await panel.getByRole('button', { name: 'Download PDF' }).click();
+      await expect(panel.getByRole('status')).toContainText(`Could not download ${STEM}.pdf (HTTP 404)`);
+      await page.getByRole('button', { name: 'Download all files (ZIP)' }).click();
+      await expect(panel.getByRole('status')).toContainText('Could not prepare the ZIP');
+      expect(saved).toBe(false);
+    });
   });
 });
 
@@ -262,8 +377,13 @@ test.describe('on a phone', () => {
     expect(map?.width).toBeLessThanOrEqual(390);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
-    await page.getByRole('tab', { name: 'Official' }).click();
-    await expect(page.locator('#panel-official .file-row')).toHaveCount(5);
+    await page.getByRole('tab', { name: 'Files' }).click();
+    const buttons = await page.locator('#panel-files .seg button').all();
+    expect(buttons).toHaveLength(4);
+    for (const button of buttons) {
+      const box = await button.boundingBox();
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+    }
   });
 
   test('keeps the search and both filters inside the map', async ({ page }) => {
